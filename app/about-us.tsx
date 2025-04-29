@@ -10,513 +10,531 @@
  * The screen features a horizontal carousel of services that can be tapped
  * to view more details in a modal popup.
  */
-import React, { useState } from 'react';
-import { StyleSheet, View, ScrollView, SafeAreaView, Image, Dimensions, TouchableOpacity, Platform, Modal, Pressable } from 'react-native';
-import { router } from 'expo-router';
+import React, { useState, useEffect } from 'react';
+import { 
+  StyleSheet, 
+  Text, 
+  View, 
+  ScrollView, 
+  TouchableOpacity, 
+  Image, 
+  Modal, 
+  Dimensions, 
+  Platform, 
+  StatusBar,
+  SafeAreaView,
+  ActivityIndicator,
+  Pressable
+} from 'react-native';
 import { BlurView } from 'expo-blur';
-
-import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from '@/components/ThemedText';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { db } from '@/config/firebase';
+import ReviewCard from '@/components/ui/ReviewCard';
 
-/**
- * GlassBackground Component
- * 
- * Creates a translucent glass-like effect container with platform-specific implementation.
- * On iOS, uses BlurView for a true glass effect.
- * On Android, falls back to a semi-transparent background.
- * 
- * @param {object} props - Component properties
- * @param {any} props.style - Additional styles to apply
- * @param {number} props.intensity - Blur intensity (iOS only)
- * @param {React.ReactNode} props.children - Child elements to render inside
- * @param {boolean} props.noRadius - If true, removes border radius
- */
-interface GlassBackgroundProps {
-  style?: any;
-  intensity?: number;
-  children: React.ReactNode;
-  noRadius?: boolean;
+// Define interfaces for our data
+interface Review {
+  id: string;
+  author: string;
+  text: string;
+  rating: number;
 }
 
-function GlassBackground({ style, intensity = 50, children, noRadius = false }: GlassBackgroundProps) {
-  const isIOS = Platform.OS === 'ios';
-  
-  if (isIOS) {
-    return (
-      <BlurView 
-        intensity={intensity} 
-        tint="light" 
-        style={[
-          styles.glassEffect, 
-          noRadius ? styles.noRadius : null,
-          style
-        ]}
-      >
-        {children}
-      </BlurView>
-    );
-  } else {
-    // Fallback for Android (no blur, just semi-transparent bg)
-    return (
-      <View 
-        style={[
-          styles.glassEffectAndroid, 
-          noRadius ? styles.noRadius : null,
-          style
-        ]}
-      >
-        {children}
-      </View>
-    );
-  }
-}
-
-/**
- * ServiceCard Component
- * 
- * Displays a service in the horizontal carousel.
- * Each card shows an image with a title overlay and is tappable
- * to show more details.
- * 
- * @param {object} props - Component properties
- * @param {string} props.title - Service title
- * @param {any} props.image - Image source for the service
- * @param {Function} props.onPress - Function to call when card is pressed
- */
-interface ServiceCardProps {
-  title: string;
+interface Service {
+  id: number;
+  name: string;
+  description: string;
   image: any;
-  onPress?: () => void;
+  price: string;
+  duration: string;
 }
 
-function ServiceCard({ title, image, onPress }: ServiceCardProps) {
-  return (
-    <TouchableOpacity style={styles.serviceCard} onPress={onPress}>
-      <Image source={image} style={styles.serviceImage} />
-      <View style={styles.serviceOverlay}>
-        <ThemedText style={styles.serviceTitle}>{title}</ThemedText>
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-/**
- * ServiceModal Component
- * 
- * Displays detailed information about a service when a service card is tapped.
- * Shows an image, title, description, and price in a modal popup.
- * 
- * @param {object} props - Component properties
- * @param {boolean} props.visible - Whether the modal is visible
- * @param {object} props.service - Service data to display
- * @param {Function} props.onClose - Function to call when modal is closed
- */
-interface ServiceModalProps {
-  visible: boolean;
-  service: any;
-  onClose: () => void;
-}
-
-function ServiceModal({ visible, service, onClose }: ServiceModalProps) {
-  if (!service) return null;
-  
-  return (
-    <Modal
-      animationType="fade"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <Image source={service.image} style={styles.modalImage} />
-          <ThemedText style={styles.modalTitle}>{service.title}</ThemedText>
-          <ThemedText style={styles.modalDescription}>{service.description}</ThemedText>
-          <ThemedText style={styles.modalPrice}>{service.price}</ThemedText>
-          
-          <Pressable style={styles.closeButton} onPress={onClose}>
-            <ThemedText style={styles.closeButtonText}>Close</ThemedText>
-          </Pressable>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-/**
- * AboutUsScreen Component
- * 
- * Main screen component that displays information about Aqua 360°.
- * Features a services carousel, operating hours, and contact information.
- */
 export default function AboutUsScreen() {
-  // State for service detail modal
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedService, setSelectedService] = useState(null);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Services data for the carousel with detailed information
-  const services = [
-    {
+  // Fetch reviews from Firestore
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        const reviewsRef = collection(db, 'reviews');
+        const q = query(reviewsRef, orderBy('timestamp', 'desc'), limit(5));
+        const querySnapshot = await getDocs(q);
+        
+        const fetchedReviews: Review[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          fetchedReviews.push({
+            id: doc.id,
+            author: data.author || 'Anonymous',
+            text: data.text || '',
+            rating: data.rating || 5
+          });
+        });
+        
+        setReviews(fetchedReviews);
+      } catch (error) {
+        console.error('Error fetching reviews:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReviews();
+  }, []);
+  
+  // List of services offered
+  const services: Service[] = [
+    { 
       id: 1,
-      title: "Biscuit Hire",
-      image: require('../assets/images/biscuir.jpg'),
-      description: "Experience the thrill of riding our biscuit tubes! Perfect for groups and families looking for a fun water activity. Hold on tight as you're pulled behind one of our boats for an exciting ride across the water.",
-      price: "Starting from $50 per 30 minutes",
+      name: 'Jet Ski Rental', 
+      description: 'Experience the thrill of riding our premium jet skis on Lake Rotorua. Suitable for beginners and experienced riders.', 
+      image: require('@/assets/images/skis.jpg'),
+      price: 'From $89/hour',
+      duration: '1-4 hours'
     },
-    {
-      id: 2,
-      title: "Jetski",
-      image: require('../assets/images/Review.png'),
-      description: "Explore the Bay of Plenty on one of our powerful jetskis. Freedom to create your own adventure with our well-maintained and reliable watercrafts. All safety equipment provided.",
-      price: "Starting from $120 per hour",
+    { 
+      id: 2, 
+      name: 'Water Skiing', 
+      description: 'Get pulled behind our specially designed boats for an exciting water skiing experience. Instruction available for beginners.', 
+      image: require('@/assets/images/fishing.jpg'),
+      price: 'From $95/hour',
+      duration: '1-2 hours'
     },
-    {
-      id: 3,
-      title: "Tours",
-      image: require('../assets/images/aqua.webp'),
-      description: "Join our guided tours to discover hidden gems around the Bay of Plenty. Visit secluded beaches, see marine wildlife, and learn about the local history and ecosystem from our experienced guides.",
-      price: "Starting from $180 per person",
+    { 
+      id: 3, 
+      name: 'Guided Fishing', 
+      description: 'Join our local guides for a productive day fishing on the lake. All equipment and bait provided.', 
+      image: require('@/assets/images/fishing.jpg'),
+      price: 'From $150/half-day',
+      duration: '4-8 hours'
     },
-    {
-      id: 4,
-      title: "Wakeboard & Water Skis",
-      image: require('../assets/images/skis.jpg'),
-      description: "Whether you're a beginner or an experienced rider, our wakeboarding and water skiing equipment caters to all skill levels. Our instructors are available to help you learn or improve your technique.",
-      price: "Starting from $60 per hour",
-    },
-    {
-      id: 5,
-      title: "Fishing",
-      image: require('../assets/images/fishing.jpg'),
-      description: "Join us for an unforgettable fishing experience in some of the best spots in the Bay of Plenty. All fishing gear provided. Our knowledgeable guides know exactly where to find the best catch.",
-      price: "Starting from $150 per person",
-    }
   ];
 
-  /**
-   * Handles press on a service card
-   * Opens modal with detailed information about the selected service
-   * 
-   * @param {object} service - The service data to display in the modal
-   */
-  const handleServicePress = (service) => {
+  const handleServicePress = (service: Service) => {
     setSelectedService(service);
-    setModalVisible(true);
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      {/* Main scrollable content container */}
-      <ScrollView 
-        style={styles.scrollView} 
-        contentContainerStyle={styles.scrollViewContent}
-        scrollEventThrottle={16}
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#52D6E2' }}>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: '#52D6E2' }}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={true}
       >
-        <View style={styles.container}>
-          {/* Title Section - "About Us" heading */}
-          <View style={styles.titleSection}>
-            <ThemedText style={styles.mainTitle}>About Us</ThemedText>
-          </View>
+        <ThemedView style={styles.contentBox}>
+          <ThemedText style={styles.sectionTitle}>Our Story</ThemedText>
+          <ThemedText style={styles.paragraph}>
+            Founded in 2023 with a passion for watersports, Aqua 360° has quickly established itself as Rotorua's premier destination for water activities. 
+            Our mission is to provide accessible, safe, and unforgettable aquatic experiences for visitors and locals alike.
+          </ThemedText>
+          <ThemedText style={styles.paragraph}>
+            Located on the picturesque shores of Lake Rotorua, we offer a wide range of services including jet ski rentals, 
+            water skiing, wake boarding, guided fishing trips, and boat tours. Our experienced staff are dedicated to 
+            ensuring your safety while helping you create lasting memories on the water.
+          </ThemedText>
+        </ThemedView>
 
-          {/* About Us Content Section - Company description */}
-          <View style={styles.contentSection}>
-            <ThemedText style={styles.contentText}>
-              We take great pride in being a family-owned business dedicated to offering thrilling jet ski hire in the stunning Bay of Plenty, where adventure meets breathtaking scenery. We genuinely value your feedback and insights on our social media platforms as they help us enhance your next experience.
-            </ThemedText>
-          </View>
+        <ThemedView style={styles.contentBox}>
+          <ThemedText style={styles.sectionTitle}>Our Services</ThemedText>
+          <ThemedText style={styles.paragraph}>
+            Explore our range of exciting water activities and services:
+          </ThemedText>
+          
+          <ScrollView 
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.servicesContainer}
+          >
+            {services.map((service) => (
+              <TouchableOpacity 
+                key={service.id}
+                style={styles.serviceCard}
+                onPress={() => handleServicePress(service)}
+                activeOpacity={0.9}
+              >
+                <Image source={service.image} style={styles.serviceImage} />
+                <View style={styles.serviceTextContainer}>
+                  <ThemedText style={styles.serviceName}>{service.name}</ThemedText>
+                  <ThemedText style={styles.servicePrice}>{service.price}</ThemedText>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </ThemedView>
 
-          {/* Services Carousel Section - Horizontal scrollable services */}
-          <View style={styles.carouselSection}>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              style={styles.servicesCarousel}
-              contentContainerStyle={styles.servicesContent}
-            >
-              {services.map(service => (
-                <ServiceCard 
-                  key={service.id}
-                  title={service.title}
-                  image={service.image}
-                  onPress={() => handleServicePress(service)}
-                />
-              ))}
-            </ScrollView>
-          </View>
-
-          {/* Operating Hours Section - Business hours display */}
-          <View style={styles.hoursSection}>
+        <ThemedView style={styles.contentBox}>
+          <View style={styles.hoursTitleContainer}>
             <ThemedText style={styles.sectionTitle}>Operating Hours</ThemedText>
-            <View style={styles.hoursContainer}>
-              <View style={styles.hourRow}>
-                <ThemedText style={styles.dayText}>Monday - Friday</ThemedText>
-                <ThemedText style={styles.timeText}>9:00 AM - 5:00 PM</ThemedText>
-              </View>
-              <View style={styles.hourRow}>
-                <ThemedText style={styles.dayText}>Saturday & Sunday</ThemedText>
-                <ThemedText style={styles.timeText}>10:00 AM - 6:00 PM</ThemedText>
-              </View>
-              <View style={styles.hourRow}>
-                <ThemedText style={styles.dayText}>Public Holidays</ThemedText>
-                <ThemedText style={styles.timeText}>10:00 AM - 4:00 PM</ThemedText>
-              </View>
+            <Ionicons name="time-outline" size={24} color="#21655A" />
+          </View>
+          
+          <View style={styles.hoursContainer}>
+            <View style={styles.hoursRow}>
+              <ThemedText style={styles.hoursDay}>Monday - Friday</ThemedText>
+              <ThemedText style={styles.hoursTime}>9:00 AM - 6:00 PM</ThemedText>
+            </View>
+            <View style={styles.hoursRow}>
+              <ThemedText style={styles.hoursDay}>Saturday</ThemedText>
+              <ThemedText style={styles.hoursTime}>8:00 AM - 7:00 PM</ThemedText>
+            </View>
+            <View style={styles.hoursRow}>
+              <ThemedText style={styles.hoursDay}>Sunday</ThemedText>
+              <ThemedText style={styles.hoursTime}>10:00 AM - 5:00 PM</ThemedText>
+            </View>
+            <View style={styles.hoursNote}>
+              <Ionicons name="information-circle-outline" size={18} color="#21655A" />
+              <ThemedText style={styles.noteText}>Hours may vary during holidays & peak season</ThemedText>
             </View>
           </View>
+        </ThemedView>
 
-          {/* Contact Info Section - Address, email, phone */}
-          <View style={styles.contactSection}>
-            <ThemedText style={styles.sectionTitle}>Contact Us</ThemedText>
-            <View style={styles.contactContent}>
-              <ThemedText style={styles.contactText}>
-                📍 Pilot Bay (Mount End) Beach, Mount Maunganui
-              </ThemedText>
-              <ThemedText style={styles.contactText}>
-                📧 Email: admin@aqua360.co.nz
-              </ThemedText>
-              <ThemedText style={styles.contactText}>
-                📱 Phone: 021 2782 360
-              </ThemedText>
+        <ThemedView style={styles.contentBox}>
+          <ThemedText style={styles.sectionTitle}>Customer Reviews</ThemedText>
+          
+          {loading ? (
+            <ActivityIndicator size="large" color="#21655A" style={styles.loader} />
+          ) : (
+            <ScrollView 
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.reviewsContainer}
+            >
+              {reviews.length > 0 ? (
+                reviews.map((review) => (
+                  <ReviewCard 
+                    key={review.id}
+                    author={review.author}
+                    rating={review.rating}
+                    text={review.text}
+                  />
+                ))
+              ) : (
+                <ThemedText style={styles.noReviews}>No reviews yet. Be the first to leave one!</ThemedText>
+              )}
+            </ScrollView>
+          )}
+          
+          <TouchableOpacity 
+            style={styles.reviewsButton}
+            onPress={() => router.push('/reviews')}
+          >
+            <ThemedText style={styles.reviewsButtonText}>Read All Reviews</ThemedText>
+            <Ionicons name="arrow-forward" size={18} color="#ffffff" />
+          </TouchableOpacity>
+        </ThemedView>
+
+        <ThemedView style={styles.contentBox}>
+          <ThemedText style={styles.sectionTitle}>Contact Us</ThemedText>
+          
+          <View style={styles.contactInfo}>
+            <View style={styles.contactRow}>
+              <Ionicons name="location-outline" size={22} color="#21655A" />
+              <ThemedText style={styles.contactText}>123 Lake Front Road, Rotorua, New Zealand</ThemedText>
+            </View>
+            <View style={styles.contactRow}>
+              <Ionicons name="call-outline" size={22} color="#21655A" />
+              <ThemedText style={styles.contactText}>+64 7 123 4567</ThemedText>
+            </View>
+            <View style={styles.contactRow}>
+              <Ionicons name="mail-outline" size={22} color="#21655A" />
+              <ThemedText style={styles.contactText}>info@aqua360.co.nz</ThemedText>
             </View>
           </View>
+        </ThemedView>
+
+        <View style={styles.footerContainer}>
+          <ThemedText style={styles.footerText}>© 2025 Aqua 360° Ltd. All rights reserved.</ThemedText>
         </View>
       </ScrollView>
 
-      {/* Service Detail Modal - Appears when a service is tapped */}
-      <ServiceModal 
-        visible={modalVisible}
-        service={selectedService}
-        onClose={() => setModalVisible(false)}
-      />
+      {/* Service Detail Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={selectedService !== null}
+        onRequestClose={() => setSelectedService(null)}
+      >
+        {selectedService && (
+          <View style={styles.modalContainer}>
+            <BlurView intensity={90} tint="light" style={styles.modalContent}>
+              <Image source={selectedService.image} style={styles.modalImage} />
+              <View style={styles.modalHeader}>
+                <ThemedText style={styles.modalTitle}>{selectedService.name}</ThemedText>
+                <TouchableOpacity 
+                  style={styles.closeButton}
+                  onPress={() => setSelectedService(null)}
+                >
+                  <Ionicons name="close" size={28} color="#21655A" />
+                </TouchableOpacity>
+              </View>
+              <ThemedText style={styles.modalDescription}>{selectedService.description}</ThemedText>
+              
+              <View style={styles.modalDetailsContainer}>
+                <View style={styles.modalDetailItem}>
+                  <Ionicons name="cash-outline" size={24} color="#21655A" />
+                  <ThemedText style={styles.modalDetailText}>{selectedService.price}</ThemedText>
+                </View>
+                <View style={styles.modalDetailItem}>
+                  <Ionicons name="time-outline" size={24} color="#21655A" />
+                  <ThemedText style={styles.modalDetailText}>{selectedService.duration}</ThemedText>
+                </View>
+              </View>
+              
+              <TouchableOpacity 
+                style={styles.bookButton}
+                onPress={() => {
+                  setSelectedService(null);
+                  router.push('/booking');
+                }}
+              >
+                <ThemedText style={styles.bookButtonText}>Book Now</ThemedText>
+              </TouchableOpacity>
+            </BlurView>
+          </View>
+        )}
+      </Modal>
     </SafeAreaView>
   );
 }
 
-// Get screen dimensions for responsive layout
 const windowWidth = Dimensions.get('window').width;
-const windowHeight = Dimensions.get('window').height;
 
-/**
- * Styles for the AboutUsScreen and its components
- */
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#52D6E2',  // Updated to match the home page background color
-  },
-  scrollView: {
-    flex: 1,
-    backgroundColor: '#52D6E2',  // Updated to match the home page background color
-  },
-  scrollViewContent: {
-    paddingBottom: 30,
-  },
   container: {
-    flex: 1,
-    alignItems: 'center',
-    backgroundColor: '#52D6E2',  // Updated to match the home page background color
+    padding: 16,
   },
-  // Glass effect styles
-  glassEffect: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    overflow: 'hidden',
-    borderRadius: 15,
-  },
-  glassEffectAndroid: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  noRadius: {
-    borderRadius: 0,
-  },
-  titleSection: {
-    width: '90%',
-    marginTop: 30,
-    marginBottom: 10,
-  },
-  mainTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#21655A',
-    textAlign: 'center',
-  },
-  contentSection: {
-    width: '90%',
-    backgroundColor: '#fff',
-    borderRadius: 15,
+  contentBox: {
+    marginBottom: 24,
+    borderRadius: 16,
     padding: 20,
-    marginTop: 30,
+    backgroundColor: '#ffffff',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  contentText: {
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#21655A',
+    marginBottom: 12,
+  },
+  paragraph: {
     fontSize: 16,
     lineHeight: 24,
     color: '#333',
+    marginBottom: 16,
   },
-  carouselSection: {
-    width: '100%',
-    marginTop: 30,
-  },
-  servicesCarousel: {
-    width: '100%',
-  },
-  servicesContent: {
-    paddingLeft: 20,
-    paddingRight: 20,
+
+  // Services Section
+  servicesContainer: {
+    paddingVertical: 16,
   },
   serviceCard: {
-    width: 250,
-    height: 180,
-    marginRight: 20,
+    width: 220,
+    marginRight: 16,
     borderRadius: 12,
     overflow: 'hidden',
-    elevation: 5,
+    backgroundColor: '#fff',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   serviceImage: {
     width: '100%',
-    height: '100%',
+    height: 140,
     resizeMode: 'cover',
   },
-  serviceOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    padding: 10,
+  serviceTextContainer: {
+    padding: 12,
   },
-  serviceTitle: {
-    color: 'white',
+  serviceName: {
     fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#21655A',
-    marginBottom: 15,
-    textAlign: 'center',
+    marginBottom: 4,
   },
-  hoursSection: {
-    width: '90%',
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 20,
-    marginTop: 30,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  servicePrice: {
+    fontSize: 14,
+    color: '#666',
+  },
+
+  // Hours Section
+  hoursTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
   hoursContainer: {
-    width: '100%',
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+    padding: 16,
   },
-  hourRow: {
+  hoursRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: 12,
+    paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    paddingVertical: 12,
+    borderBottomColor: '#eee',
   },
-  dayText: {
+  hoursDay: {
     fontSize: 16,
+    fontWeight: '600',
     color: '#333',
-    fontWeight: '500',
   },
-  timeText: {
+  hoursTime: {
     fontSize: 16,
     color: '#21655A',
-    fontWeight: '600',
+    fontWeight: '500',
   },
-  contactSection: {
-    width: '90%',
-    backgroundColor: '#fff',
-    borderRadius: 15,
+  hoursNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  noteText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 6,
+    fontStyle: 'italic',
+  },
+
+  // Reviews Section
+  reviewsContainer: {
+    paddingVertical: 12,
+  },
+  loader: {
+    marginVertical: 20,
+  },
+  noReviews: {
     padding: 20,
-    marginTop: 30,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    fontStyle: 'italic',
+    color: '#666',
   },
-  contactContent: {
-    alignItems: 'flex-start',
+  reviewsButton: {
+    marginTop: 16,
+    backgroundColor: '#21655A',
+    borderRadius: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  reviewsButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginRight: 8,
+  },
+
+  // Contact Section
+  contactInfo: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+    padding: 16,
+  },
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
   },
   contactText: {
     fontSize: 16,
     color: '#333',
-    marginBottom: 12,
+    marginLeft: 10,
   },
-  modalOverlay: {
+
+  // Modal Styles
+  modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    width: '85%',
-    backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    width: windowWidth * 0.9,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
   },
   modalImage: {
     width: '100%',
     height: 200,
-    borderRadius: 8,
-    marginBottom: 15,
     resizeMode: 'cover',
   },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  },
   modalTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
-    color: '#21655A', // Updated: Using app's primary color
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#21655A',
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalDescription: {
     fontSize: 16,
-    marginBottom: 15,
-    textAlign: 'center',
     lineHeight: 24,
-    color: '#333333', // Updated: Darker text for better readability
+    color: '#333',
+    padding: 16,
+    paddingTop: 0,
   },
-  modalPrice: {
+  modalDetailsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    padding: 16,
+    backgroundColor: '#f9f9f9',
+  },
+  modalDetailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  modalDetailText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#21655A',
+    marginLeft: 8,
+  },
+  bookButton: {
+    backgroundColor: '#21655A',
+    padding: 16,
+    margin: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  bookButtonText: {
+    color: '#ffffff',
     fontSize: 18,
     fontWeight: '600',
-    color: '#21655A', // Updated: Changed from blue to match app theme
-    marginBottom: 20,
   },
-  closeButton: {
-    backgroundColor: '#21655A', // Updated: Changed from blue to match app theme
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 25,
-    marginTop: 10,
+
+  // Footer
+  footerContainer: {
+    marginTop: 8,
+    marginBottom: 24,
+    alignItems: 'center',
   },
-  closeButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+  footerText: {
+    fontSize: 14,
+    color: '#999',
   },
 });

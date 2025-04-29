@@ -54,7 +54,7 @@ function BookingScreen() {
   // Available add-ons with pricing and selection state
   const [addOns, setAddOns] = useState([
     { id: 1, name: 'Biscuit Ride', price: 60, selected: false, image: require('../assets/images/biscuir.jpg') },
-    { id: 2, name: 'Wakeboard', price: 50, selected: false, image: require('../assets/images/skis.jpg') },
+    { id: 2, name: 'Wakeboard', price: 50, selected: false, image: require('../assets/images/wakeboard.webp') },
     { id: 3, name: 'Water Skis', price: 50, selected: false, image: require('../assets/images/skis.jpg') },
     { id: 4, name: 'Fishing Package', price: 60, selected: false, image: require('../assets/images/fishing.jpg') },
   ]);
@@ -325,19 +325,19 @@ function BookingScreen() {
           <View style={styles.serviceContainer}>
             <ServiceCard
               title="Jet Skis"
-              image={require('../assets/images/aqua.webp')}
+              image={require('../assets/images/Jetski-image.webp')}
               onPress={() => handleServiceSelect('jetski')}
               selected={selectedService === 'jetski'}
             />
             <ServiceCard
               title="Aqua Lounge"
-              image={require('../assets/images/about-us-image.webp')}
+              image={require('../assets/images/Aqua-lounge.webp')}
               onPress={() => handleServiceSelect('aqualounge')}
               selected={selectedService === 'aqualounge'}
             />
             <ServiceCard
               title="Guided Tours"
-              image={require('../assets/images/aqua.webp')}
+              image={require('../assets/images/tours2.png')}
               onPress={() => handleServiceSelect('tours')}
               selected={selectedService === 'tours'}
             />

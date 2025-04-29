@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   StyleSheet, 
   TextInput, 
@@ -7,13 +7,19 @@ import {
   View, 
   Platform, 
   Keyboard,
-  StatusBar
+  StatusBar,
+  ActivityIndicator
 } from 'react-native';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import ReviewCard from '@/components/ui/ReviewCard';
 import { BlurView } from 'expo-blur';
 import { router } from 'expo-router';
+import { collection, addDoc, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
+import { db } from '@/config/firebase';
+import { useAuth } from '@/hooks/useAuth';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors } from '@/constants/Colors';
 
 // GlassBackground component with proper return type
 function GlassBackground({ 
@@ -58,10 +64,12 @@ function GlassBackground({
 }
 
 interface Review {
+  id?: string;
   author: string;
   email: string; // Email won't be displayed in ReviewCard but stored
   text: string;
   rating: number;
+  createdAt?: Timestamp;
 }
 
 interface FormErrors {
@@ -72,11 +80,8 @@ interface FormErrors {
 }
 
 export default function ReviewsScreen() {
-  // Sample review data
-  const [reviews, setReviews] = useState<Review[]>([
-    { author: 'Alice', email: 'alice@email.com', text: 'Great experience! Highly recommend.', rating: 5 },
-    { author: 'Bob', email: 'bob@email.com', text: 'Nice place, friendly staff.', rating: 4 },
-  ]);
+  // Review state
+  const [reviews, setReviews] = useState<Review[]>([]);
   
   // Form state
   const [author, setAuthor] = useState('');
@@ -85,11 +90,47 @@ export default function ReviewsScreen() {
   const [rating, setRating] = useState('5');
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  
+  // Auth context
+  const { user } = useAuth();
   
   // Refs for text inputs to help with focus management
   const emailInputRef = useRef<TextInput>(null);
   const reviewInputRef = useRef<TextInput>(null);
   const ratingInputRef = useRef<TextInput>(null);
+
+  // Fetch reviews from Firestore on component mount
+  useEffect(() => {
+    fetchReviews();
+  }, []);
+
+  // Function to fetch reviews from Firestore
+  const fetchReviews = async () => {
+    try {
+      setIsInitialLoading(true);
+      const reviewsQuery = query(
+        collection(db, 'reviews'),
+        orderBy('createdAt', 'desc')
+      );
+      
+      const querySnapshot = await getDocs(reviewsQuery);
+      const fetchedReviews: Review[] = [];
+      
+      querySnapshot.forEach((doc) => {
+        fetchedReviews.push({
+          id: doc.id,
+          ...doc.data()
+        } as Review);
+      });
+      
+      setReviews(fetchedReviews);
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+    } finally {
+      setIsInitialLoading(false);
+    }
+  };
 
   // Email validation function
   const validateEmail = (email: string): boolean => {
@@ -129,25 +170,36 @@ export default function ReviewsScreen() {
     return isValid;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     Keyboard.dismiss();
     
     if (!validateForm()) {
       return;
     }
 
-    // Simulate loading state for API submission
+    // Set loading state for API submission
     setIsLoading(true);
     
-    setTimeout(() => {
+    try {
+      // Create review object
+      const reviewData: Omit<Review, 'id'> = {
+        author,
+        email,
+        text,
+        rating: Math.max(1, Math.min(5, parseInt(rating))),
+        createdAt: Timestamp.now()
+      };
+      
+      // Save to Firestore
+      const docRef = await addDoc(collection(db, 'reviews'), reviewData);
+      
+      // Add to local state with generated ID
       setReviews([
-        { 
-          author, 
-          email, 
-          text, 
-          rating: Math.max(1, Math.min(5, parseInt(rating))) 
+        {
+          id: docRef.id,
+          ...reviewData
         },
-        ...reviews,
+        ...reviews
       ]);
       
       // Reset form
@@ -156,8 +208,11 @@ export default function ReviewsScreen() {
       setText('');
       setRating('5');
       setErrors({});
+    } catch (error) {
+      console.error('Error saving review:', error);
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   return (
@@ -167,7 +222,13 @@ export default function ReviewsScreen() {
         backgroundColor="rgba(33, 101, 90, 1)"
       />
       
-      {/* The green back button has been removed */}
+      {/* Back button */}
+      <TouchableOpacity 
+        style={styles.backButton}
+        onPress={() => router.back()}
+      >
+        <Ionicons name="arrow-back" size={24} color="#fff" />
+      </TouchableOpacity>
 
       <ScrollView 
         contentContainerStyle={styles.scrollContent} 
@@ -254,39 +315,48 @@ export default function ReviewsScreen() {
             <ThemedText style={styles.errorText}>{errors.rating}</ThemedText>
           }
           
-          <TouchableOpacity 
-            style={[styles.button, isLoading ? styles.buttonDisabled : null]}
+          <TouchableOpacity
+            style={[
+              styles.submitButton,
+              isLoading && styles.disabledButton
+            ]}
             onPress={handleSubmit}
             disabled={isLoading}
-            accessibilityLabel="Submit review"
-            accessibilityHint="Submit your review and rating"
           >
-            <ThemedText style={styles.buttonText}>
-              {isLoading ? "Submitting..." : "Submit Review"}
-            </ThemedText>
+            {isLoading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <ThemedText style={styles.submitButtonText}>Submit Review</ThemedText>
+            )}
           </TouchableOpacity>
         </GlassBackground>
-
+        
         {/* Reviews List */}
-        <View style={styles.reviewsList}>
-          <ThemedText type="heading3" style={styles.reviewsListTitle}>
-            What Others Are Saying
+        <View style={styles.reviewsSection}>
+          <ThemedText type="heading2" style={styles.sectionTitle}>
+            Customer Reviews
           </ThemedText>
           
-          {reviews.length === 0 ? (
+          {isInitialLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.light.palette.secondary.main} />
+              <ThemedText style={styles.loadingText}>Loading reviews...</ThemedText>
+            </View>
+          ) : reviews.length === 0 ? (
             <ThemedText style={styles.noReviewsText}>
-              No reviews yet. Be the first to leave one!
+              No reviews yet. Be the first to share your experience!
             </ThemedText>
           ) : (
-            reviews.map((review, idx) => (
-              <ReviewCard
-                key={idx}
-                text={review.text}
-                author={review.author}
-                rating={review.rating}
-                style={styles.reviewCard}
-              />
-            ))
+            <View style={styles.reviewsList}>
+              {reviews.map((review, index) => (
+                <ReviewCard
+                  key={review.id || index}
+                  author={review.author}
+                  text={review.text}
+                  rating={review.rating}
+                />
+              ))}
+            </View>
           )}
         </View>
       </ScrollView>
@@ -300,7 +370,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#52D6E2',
     paddingTop: Platform.OS === 'ios' ? 45 : StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 30,
   },
-  // backButton styles removed
   scrollContent: {
     alignItems: 'center',
     paddingBottom: 40,
@@ -343,7 +412,7 @@ const styles = StyleSheet.create({
     minHeight: 100,
     textAlignVertical: 'top',
   },
-  button: {
+  submitButton: {
     backgroundColor: '#21655A',
     paddingVertical: 12,
     paddingHorizontal: 30,
@@ -356,22 +425,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 2,
   },
-  buttonDisabled: {
-    backgroundColor: '#93beab',
+  disabledButton: {
+    opacity: 0.7,
   },
-  buttonText: {
+  submitButtonText: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 17,
     textAlign: 'center',
   },
-  reviewsList: {
+  reviewsSection: {
     width: '100%',
     alignItems: 'center',
     marginTop: 10,
     paddingBottom: 30,
   },
-  reviewsListTitle: {
+  sectionTitle: {
     marginBottom: 15,
     color: '#21655A',
     fontSize: 20,
@@ -381,19 +450,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 20,
   },
-  noReviewsText: {
-    fontSize: 16,
-    color: '#555',
-    textAlign: 'center',
-    marginTop: 20,
-    backgroundColor: 'rgba(255,255,255,0.7)',
-    padding: 15,
-    borderRadius: 10,
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
   },
-  reviewCard: {
-    marginBottom: 18,
-    width: '90%',
-    alignSelf: 'center',
+  loadingText: {
+    marginTop: 16,
+    color: Colors.light.palette.neutral[700],
+  },
+  noReviewsText: {
+    padding: 20,
+    textAlign: 'center',
+    color: Colors.light.palette.neutral[700],
+  },
+  reviewsList: {
+    gap: 16,
   },
   // Glass styles
   glassEffect: {

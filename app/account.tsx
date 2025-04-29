@@ -192,8 +192,10 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    backgroundColor: '#F6F8FA',
   },
   scrollContent: {
+    flexGrow: 1,
     paddingBottom: 40,
   },
   profileSection: {
