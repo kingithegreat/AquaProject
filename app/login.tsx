@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
+import { StyleSheet, View, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { BlurView } from 'expo-blur';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { auth } from '@/config/firebase';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     // Reset error state
     setError('');
     
@@ -26,9 +29,59 @@ export default function LoginScreen() {
       return;
     }
     
-    // In a real app, you would handle authentication here
-    // For now, simulate a successful login and navigate to home
-    router.replace('/');
+    // Firebase authentication
+    try {
+      setLoading(true);
+      console.log('Attempting to sign in with:', email);
+      console.log('Firebase auth instance:', auth ? 'Available' : 'Not available');
+      console.log('Firebase config:', JSON.stringify({
+        projectId: auth?.app?.options?.projectId,
+        apiKey: 'HIDDEN' // Don't log the actual API key
+      }));
+      
+      await signInWithEmailAndPassword(auth, email, password);
+      // Successfully logged in, navigate to home
+      console.log('Login successful');
+      router.replace('/');
+    } catch (error: any) { // Proper typing for error
+      console.error('Firebase login error DETAILS:', {
+        code: error.code,
+        message: error.message,
+        fullError: JSON.stringify(error)
+      });
+      
+      // More comprehensive error handling for Firebase auth errors
+      switch(error.code) {
+        case 'auth/invalid-email':
+          setError('Invalid email format');
+          break;
+        case 'auth/user-disabled':
+          setError('This account has been disabled');
+          break;
+        case 'auth/user-not-found':
+          setError('No account found with this email');
+          break;
+        case 'auth/wrong-password':
+          setError('Incorrect password');
+          break;
+        case 'auth/invalid-credential':
+          setError('Invalid login credentials');
+          break;
+        case 'auth/too-many-requests':
+          setError('Too many failed login attempts. Please try again later.');
+          break;
+        case 'auth/network-request-failed':
+          setError('Network error. Please check your internet connection.');
+          break;
+        case 'auth/internal-error':
+          setError('Authentication service error. Please try again later.');
+          break;
+        default:
+          setError(`Login failed: ${error.message || 'Unknown error'}`);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSignUp = () => {
@@ -74,6 +127,7 @@ export default function LoginScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                editable={!loading}
               />
             </View>
             
@@ -86,24 +140,37 @@ export default function LoginScreen() {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
+                editable={!loading}
               />
             </View>
             
             {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
             
-            <TouchableOpacity style={styles.forgotPasswordButton} onPress={handleForgotPassword}>
+            <TouchableOpacity 
+              style={[styles.forgotPasswordButton]} 
+              onPress={handleForgotPassword}
+              disabled={loading}
+            >
               <ThemedText style={styles.forgotPasswordText}>Forgot password?</ThemedText>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-              <ThemedText style={styles.loginButtonText}>Login</ThemedText>
+            <TouchableOpacity 
+              style={[styles.loginButton, loading && styles.loginButtonDisabled]} 
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <ThemedText style={styles.loginButtonText}>Login</ThemedText>
+              )}
             </TouchableOpacity>
           </View>
           
           {/* Sign Up Link */}
           <View style={styles.signupContainer}>
             <ThemedText style={styles.signupText}>Don't have an account?</ThemedText>
-            <TouchableOpacity onPress={handleSignUp}>
+            <TouchableOpacity onPress={handleSignUp} disabled={loading}>
               <ThemedText style={styles.signupLink}>Sign Up</ThemedText>
             </TouchableOpacity>
           </View>
@@ -196,6 +263,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  loginButtonDisabled: {
+    backgroundColor: '#93beab', // Lighter color when disabled
   },
   loginButtonText: {
     color: '#fff',

@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { router } from 'expo-router';
+import { ActivityIndicator } from 'react-native';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/config/firebase';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -10,8 +13,9 @@ export default function SignupScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
     // Reset error state
     setError('');
     
@@ -36,9 +40,40 @@ export default function SignupScreen() {
       return;
     }
     
-    // In a real app, you would handle user registration here
-    // For now, simulate a successful registration and navigate to home
-    router.replace('/');
+    // Firebase authentication
+    try {
+      setLoading(true);
+      console.log('Attempting to create account with:', email);
+      await createUserWithEmailAndPassword(auth, email, password);
+      // Successfully created user, navigate to home
+      console.log('Account creation successful');
+      router.replace('/');
+    } catch (error: any) {
+      console.error('Firebase signup error:', error.code, error.message);
+      
+      // More comprehensive error handling for Firebase auth errors
+      switch(error.code) {
+        case 'auth/email-already-in-use':
+          setError('This email is already registered');
+          break;
+        case 'auth/invalid-email':
+          setError('Invalid email format');
+          break;
+        case 'auth/weak-password':
+          setError('Password is too weak. Use at least 6 characters');
+          break;
+        case 'auth/operation-not-allowed':
+          setError('Account creation is disabled');
+          break;
+        case 'auth/network-request-failed':
+          setError('Network error. Please check your internet connection');
+          break;
+        default:
+          setError(`Registration failed: ${error.message || 'Unknown error'}`);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogin = () => {
@@ -79,6 +114,7 @@ export default function SignupScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                editable={!loading}
               />
             </View>
             
@@ -91,6 +127,7 @@ export default function SignupScreen() {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
+                editable={!loading}
               />
             </View>
             
@@ -103,6 +140,7 @@ export default function SignupScreen() {
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry
+                editable={!loading}
               />
             </View>
             
@@ -114,15 +152,23 @@ export default function SignupScreen() {
               </ThemedText>
             </View>
             
-            <TouchableOpacity style={styles.signupButton} onPress={handleSignUp}>
-              <ThemedText style={styles.signupButtonText}>Create Account</ThemedText>
+            <TouchableOpacity 
+              style={[styles.signupButton, loading && styles.signupButtonDisabled]}
+              onPress={handleSignUp}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <ThemedText style={styles.signupButtonText}>Create Account</ThemedText>
+              )}
             </TouchableOpacity>
           </View>
           
           {/* Login Link */}
           <View style={styles.loginContainer}>
             <ThemedText style={styles.loginText}>Already have an account?</ThemedText>
-            <TouchableOpacity onPress={handleLogin}>
+            <TouchableOpacity onPress={handleLogin} disabled={loading}>
               <ThemedText style={styles.loginLink}>Login</ThemedText>
             </TouchableOpacity>
           </View>
@@ -214,6 +260,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  signupButtonDisabled: {
+    backgroundColor: '#93beab', // Lighter color when disabled
   },
   signupButtonText: {
     color: '#fff',

@@ -14,10 +14,14 @@ import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
+import { collection, addDoc } from 'firebase/firestore';
 
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
 import { Colors } from '../constants/Colors';
+import { withProtectedRoute } from '@/hooks/withProtectedRoute';
+import { useAuth } from '@/hooks/useAuth';
+import { db } from '@/config/firebase';
 
 /**
  * BookingScreen Component
@@ -32,7 +36,7 @@ import { Colors } from '../constants/Colors';
  * 5. Review of booking summary and total cost
  * 6. Confirmation with booking reference
  */
-export default function BookingScreen() {
+function BookingScreen() {
   const router = useRouter();
   
   // State for date and time selection
@@ -168,16 +172,67 @@ export default function BookingScreen() {
    * Handles booking confirmation
    * Validates required fields, generates booking reference, and shows confirmation modal
    */
-  const handleConfirmBooking = () => {
+  const handleConfirmBooking = async () => {
     if (!selectedService) {
       Alert.alert('Selection Required', 'Please select a service type.');
+      return;
+    }
+    
+    // Get the current user from the auth context
+    const { user } = useAuth();
+    
+    if (!user || !user.uid) {
+      Alert.alert('Authentication Error', 'Please log in again before booking.');
       return;
     }
     
     // Generate random booking reference with 'BK-' prefix
     const ref = 'BK-' + Math.floor(100000 + Math.random() * 900000);
     setBookingReference(ref);
-    setShowConfirmation(true);
+    
+    try {
+      // Create booking object with all relevant details
+      const bookingData = {
+        userId: user.uid,
+        userEmail: user.email,
+        reference: ref,
+        date: selectedDate.toISOString(),
+        time: selectedTime.toISOString(),
+        serviceType: selectedService,
+        quantity: selectedService === 'jetski' ? jetSkiCount : 1,
+        addOns: addOns.filter(addon => addon.selected).map(addon => ({
+          id: addon.id,
+          name: addon.name,
+          price: addon.price
+        })),
+        totalAmount: calculateTotal(),
+        status: 'confirmed',
+        // Use a regular Date object instead of serverTimestamp for Expo Go compatibility
+        createdAt: new Date(),
+      };
+      
+      // Save booking to Firestore with better error handling
+      console.log('Saving booking to Firestore:', bookingData);
+      try {
+        const bookingRef = await addDoc(collection(db, 'bookings'), bookingData);
+        console.log('Booking saved with ID:', bookingRef.id);
+        
+        // Show confirmation modal
+        setShowConfirmation(true);
+      } catch (firestoreError) {
+        console.error('Firestore error:', firestoreError);
+        Alert.alert(
+          'Database Error', 
+          'Could not save your booking to the database. Please try again later.'
+        );
+      }
+    } catch (error) {
+      console.error('Error saving booking:', error);
+      Alert.alert(
+        'Booking Error', 
+        'There was a problem with your booking. Please try again.'
+      );
+    }
   };
   
   /**
@@ -875,3 +930,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
+
+export default withProtectedRoute(BookingScreen);

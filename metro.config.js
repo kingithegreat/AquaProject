@@ -7,4 +7,7 @@ config.resolver.alias = {
   '@': '.',
 };
 
+// Add support for CommonJS modules used by Firebase
+config.resolver.sourceExts.push('cjs');
+
 module.exports = config;

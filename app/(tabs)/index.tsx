@@ -6,6 +6,7 @@ import { BlurView } from 'expo-blur';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import ReviewCard from '@/components/ui/ReviewCard';
+import { useAuth } from '@/hooks/useAuth';
 
 // Glass effect component
 interface GlassBackgroundProps {
@@ -49,6 +50,14 @@ function GlassBackground({ style, intensity = 50, children, noRadius = false }: 
 }
 
 export default function HomeScreen() {
+  const { user, logout, loading } = useAuth();
+
+  // Handle user logout
+  const handleLogout = async () => {
+    await logout();
+    // No need to navigate - the auth state change will trigger UI updates
+  };
+
   // Navigation handlers
   const handleLogin = () => {
     router.push('/login');
@@ -78,6 +87,10 @@ export default function HomeScreen() {
     router.push('/reviews');
   };
 
+  const handleMyBookings = () => {
+    router.push('/my-bookings');
+  };
+
   const reviews = [
     { author: 'Alice', text: 'Great experience! Highly recommend.', rating: 5 },
     { author: 'Bob', text: 'Nice place, friendly staff.', rating: 4 },
@@ -88,12 +101,32 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safeArea}>
       {/* Header Section - no rounded borders */}
       <GlassBackground style={styles.header} intensity={80} noRadius={true}>
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-          <ThemedText style={styles.loginButtonText}>Login</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.signupButton} onPress={handleSignup}>
-          <ThemedText style={styles.signupButtonText}>Sign Up</ThemedText>
-        </TouchableOpacity>
+        {loading ? (
+          // Show placeholder during authentication loading
+          <View style={styles.headerContent}>
+            <ThemedText style={styles.loadingText}>Loading...</ThemedText>
+          </View>
+        ) : user ? (
+          // User is logged in - show email and logout button
+          <View style={styles.headerContent}>
+            <ThemedText style={styles.userEmail} numberOfLines={1}>
+              {user.email}
+            </ThemedText>
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+              <ThemedText style={styles.logoutButtonText}>Logout</ThemedText>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          // User is not logged in - show login and signup buttons
+          <View style={styles.headerContent}>
+            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+              <ThemedText style={styles.loginButtonText}>Login</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.signupButton} onPress={handleSignup}>
+              <ThemedText style={styles.signupButtonText}>Sign Up</ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
       </GlassBackground>
 
       <ScrollView 
@@ -133,6 +166,13 @@ export default function HomeScreen() {
                 <ThemedText style={styles.buttonIcon}>📅</ThemedText>
               </View>
               <ThemedText style={styles.actionButtonText}>Book Now</ThemedText>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.actionButton} onPress={handleMyBookings}>
+              <View style={styles.buttonIconPlaceholder}>
+                <ThemedText style={styles.buttonIcon}>🎫</ThemedText>
+              </View>
+              <ThemedText style={styles.actionButtonText}>My Bookings</ThemedText>
             </TouchableOpacity>
           </View>
 
@@ -236,6 +276,40 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(255, 255, 255, 0.5)',
     borderBottomLeftRadius: 20,  // Round the bottom left corner
     borderBottomRightRadius: 20, // Round the bottom right corner
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  loadingText: {
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  userEmail: {
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 16,
+    flex: 1,
+    marginRight: 10,
+  },
+  logoutButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    borderRadius: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+  },
+  logoutButtonText: {
+    color: '#21655A',
+    fontWeight: '700',
+    fontSize: 16,
   },
   loginButton: {
     paddingVertical: 8,
