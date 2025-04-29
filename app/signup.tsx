@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator } from 'react-native';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 
 export default function SignupScreen() {
   const [email, setEmail] = useState('');
@@ -14,6 +13,7 @@ export default function SignupScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { redirect } = useLocalSearchParams<{ redirect?: string }>();
 
   const handleSignUp = async () => {
     // Reset error state
@@ -45,9 +45,14 @@ export default function SignupScreen() {
       setLoading(true);
       console.log('Attempting to create account with:', email);
       await createUserWithEmailAndPassword(auth, email, password);
-      // Successfully created user, navigate to home
+      // Successfully created user, navigate to redirect path or account
       console.log('Account creation successful');
-      router.replace('/');
+      
+      if (redirect) {
+        router.replace(redirect as string);
+      } else {
+        router.replace('/account'); // Navigate to account page by default
+      }
     } catch (error: any) {
       console.error('Firebase signup error:', error.code, error.message);
       
@@ -77,7 +82,15 @@ export default function SignupScreen() {
   };
 
   const handleLogin = () => {
-    router.push('/login');
+    // Pass along the redirect parameter to login as well
+    if (redirect) {
+      router.push({
+        pathname: '/login',
+        params: { redirect }
+      });
+    } else {
+      router.push('/login');
+    }
   };
 
   return (

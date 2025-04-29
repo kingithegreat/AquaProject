@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Image, ActivityIndicator } from 'react-native';
-import { router } from 'expo-router';
-import { BlurView } from 'expo-blur';
+import { router, useLocalSearchParams } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 import { auth } from '@/config/firebase';
 
 export default function LoginScreen() {
@@ -13,6 +11,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { redirect } = useLocalSearchParams<{ redirect?: string }>();
 
   const handleLogin = async () => {
     // Reset error state
@@ -33,21 +32,20 @@ export default function LoginScreen() {
     try {
       setLoading(true);
       console.log('Attempting to sign in with:', email);
-      console.log('Firebase auth instance:', auth ? 'Available' : 'Not available');
-      console.log('Firebase config:', JSON.stringify({
-        projectId: auth?.app?.options?.projectId,
-        apiKey: 'HIDDEN' // Don't log the actual API key
-      }));
       
       await signInWithEmailAndPassword(auth, email, password);
-      // Successfully logged in, navigate to home
+      // Successfully logged in, navigate to the redirect path or home
       console.log('Login successful');
-      router.replace('/');
+      
+      if (redirect) {
+        router.replace(redirect as string);
+      } else {
+        router.replace('/account'); // Navigate to new account page by default
+      }
     } catch (error: any) { // Proper typing for error
       console.error('Firebase login error DETAILS:', {
         code: error.code,
-        message: error.message,
-        fullError: JSON.stringify(error)
+        message: error.message
       });
       
       // More comprehensive error handling for Firebase auth errors
@@ -85,7 +83,15 @@ export default function LoginScreen() {
   };
 
   const handleSignUp = () => {
-    router.push('/signup');
+    // Pass along the redirect parameter to signup as well
+    if (redirect) {
+      router.push({
+        pathname: '/signup',
+        params: { redirect }
+      });
+    } else {
+      router.push('/signup');
+    }
   };
 
   const handleForgotPassword = () => {

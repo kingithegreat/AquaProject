@@ -79,11 +79,17 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     justifyContent: 'space-between',
     minHeight: 180,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 7,
+    // Updated from deprecated shadow* properties to boxShadow for web
+    ...(Platform.OS === 'web' 
+      ? { boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.25)' } 
+      : {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.25,
+          shadowRadius: 8,
+          elevation: 7,
+        }
+    ),
     backgroundColor: 'rgba(255, 255, 255, 0.9)', // Increased opacity for white background
   },
   reviewCardAndroid: {

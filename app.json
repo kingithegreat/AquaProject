@@ -1,21 +1,33 @@
 {
   "expo": {
-    "name": "my-expo-app",
-    "slug": "my-expo-app",
+    "name": "Aqua 360°",
+    "slug": "aqua-360",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "aqua360",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#52D6E2"
+    },
+    "assetBundlePatterns": [
+      "assets/images/*",
+      "assets/fonts/*"
+    ],
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      }
+        "backgroundColor": "#52D6E2"
+      },
+      "package": "com.aqua360.app",
+      "softwareKeyboardLayoutMode": "pan",
+      "permissions": []
     },
     "web": {
       "bundler": "metro",
@@ -30,12 +42,30 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#52D6E2"
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "aqua-360"
+      },
+      "expoGo": {
+        "debuggerHost": "192.168.20.20:8082",
+        "packagerHost": "192.168.20.20:8082"
+      }
+    },
+    "developmentClient": {
+      "silentLaunch": true
     }
   }
 }

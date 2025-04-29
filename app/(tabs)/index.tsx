@@ -1,12 +1,28 @@
-import React from 'react';
-import { StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, View, Image, Dimensions, Platform } from 'react-native';
-import { Stack, router } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, View, Image, Dimensions, Platform, ActivityIndicator } from 'react-native';
+import { Stack, router, useFocusEffect } from 'expo-router';
 import { BlurView } from 'expo-blur';
+import { Asset } from 'expo-asset';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import ReviewCard from '@/components/ui/ReviewCard';
 import { useAuth } from '@/hooks/useAuth';
+
+// Pre-load images to prevent rendering delays
+const preloadImages = async () => {
+  try {
+    const images = [
+      require('../../assets/images/about-us-image.webp'),
+    ];
+    
+    await Promise.all(images.map(image => Asset.fromModule(image).downloadAsync()));
+    return true;
+  } catch (error) {
+    console.log('Error preloading images', error);
+    return false;
+  }
+};
 
 // Glass effect component
 interface GlassBackgroundProps {
@@ -51,6 +67,22 @@ function GlassBackground({ style, intensity = 50, children, noRadius = false }: 
 
 export default function HomeScreen() {
   const { user, logout, loading } = useAuth();
+  const [imagesLoaded, setImagesLoaded] = useState(false);
+  
+  // Preload images when component mounts
+  useEffect(() => {
+    preloadImages().then(() => setImagesLoaded(true));
+  }, []);
+  
+  // Reset image loading state when screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      if (!imagesLoaded) {
+        preloadImages().then(() => setImagesLoaded(true));
+      }
+      return () => {};
+    }, [imagesLoaded])
+  );
 
   // Handle user logout
   const handleLogout = async () => {
@@ -87,8 +119,15 @@ export default function HomeScreen() {
     router.push('/reviews');
   };
 
-  const handleMyBookings = () => {
-    router.push('/my-bookings');
+  const handleMyAccount = () => {
+    if (user) {
+      router.push('/account');
+    } else {
+      router.push({
+        pathname: '/login',
+        params: { redirect: '/account' }
+      });
+    }
   };
 
   const reviews = [
@@ -96,6 +135,16 @@ export default function HomeScreen() {
     { author: 'Bob', text: 'Nice place, friendly staff.', rating: 4 },
     { author: 'Charlie', text: 'Amazing views and fun activities.', rating: 5 },
   ];
+
+  // If images or auth are still loading, show loading indicator
+  if (loading || !imagesLoaded) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#21655A" />
+        <ThemedText style={styles.loadingText}>Loading Aqua 360°...</ThemedText>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -107,13 +156,13 @@ export default function HomeScreen() {
             <ThemedText style={styles.loadingText}>Loading...</ThemedText>
           </View>
         ) : user ? (
-          // User is logged in - show email and logout button
+          // User is logged in - show email and account button
           <View style={styles.headerContent}>
             <ThemedText style={styles.userEmail} numberOfLines={1}>
               {user.email}
             </ThemedText>
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-              <ThemedText style={styles.logoutButtonText}>Logout</ThemedText>
+            <TouchableOpacity style={styles.accountButton} onPress={handleMyAccount}>
+              <ThemedText style={styles.accountButtonText}>My Account</ThemedText>
             </TouchableOpacity>
           </View>
         ) : (
@@ -168,11 +217,11 @@ export default function HomeScreen() {
               <ThemedText style={styles.actionButtonText}>Book Now</ThemedText>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.actionButton} onPress={handleMyBookings}>
+            <TouchableOpacity style={styles.actionButton} onPress={handleMyAccount}>
               <View style={styles.buttonIconPlaceholder}>
-                <ThemedText style={styles.buttonIcon}>🎫</ThemedText>
+                <ThemedText style={styles.buttonIcon}>👤</ThemedText>
               </View>
-              <ThemedText style={styles.actionButtonText}>My Bookings</ThemedText>
+              <ThemedText style={styles.actionButtonText}>My Account</ThemedText>
             </TouchableOpacity>
           </View>
 
@@ -294,6 +343,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     flex: 1,
     marginRight: 10,
+  },
+  accountButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    borderRadius: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+  },
+  accountButtonText: {
+    color: '#21655A',
+    fontWeight: '700',
+    fontSize: 16,
   },
   logoutButton: {
     paddingVertical: 8,
@@ -491,5 +556,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 20,
     opacity: 0.8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#52D6E2',
   },
 });

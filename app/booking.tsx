@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, addDoc } from 'firebase/firestore';
 
@@ -88,20 +88,22 @@ function BookingScreen() {
    * Handles date selection from the date picker
    * Platform-specific behavior for iOS and Android
    */
-  const handleDateChange = (event: any, selectedDate?: Date) => {
-    const currentDate = selectedDate || new Date();
+  const handleDateChange = (event: DateTimePickerEvent, date: Date | undefined) => {
     setShowCalendar(Platform.OS === 'ios');
-    setSelectedDate(currentDate);
+    if (date) {
+      setSelectedDate(date);
+    }
   };
 
   /**
    * Handles time selection from the time picker
    * Platform-specific behavior for iOS and Android
    */
-  const handleTimeChange = (event: any, selectedTime?: Date) => {
-    const currentTime = selectedTime || new Date();
+  const handleTimeChange = (event: DateTimePickerEvent, time: Date | undefined) => {
     setShowTimePicker(Platform.OS === 'ios');
-    setSelectedTime(currentTime);
+    if (time) {
+      setSelectedTime(time);
+    }
   };
   
   /**
@@ -468,9 +470,9 @@ function BookingScreen() {
               </View>
               <DateTimePicker
                 value={selectedDate}
-                mode="date"
-                display="spinner"
                 onChange={handleDateChange}
+                mode="date"
+                display="default"
                 minimumDate={new Date()}
                 maximumDate={new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)} // 90 days from now
               />
@@ -502,9 +504,9 @@ function BookingScreen() {
               </View>
               <DateTimePicker
                 value={selectedTime}
-                mode="time"
-                display="spinner"
                 onChange={handleTimeChange}
+                mode="time"
+                display="default"
                 minuteInterval={15}
               />
               <TouchableOpacity
@@ -522,9 +524,9 @@ function BookingScreen() {
       {Platform.OS === 'android' && showCalendar && (
         <DateTimePicker
           value={selectedDate}
+          onChange={handleDateChange}
           mode="date"
           display="default"
-          onChange={handleDateChange}
           minimumDate={new Date()}
           maximumDate={new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)} // 90 days from now
         />
@@ -534,9 +536,9 @@ function BookingScreen() {
       {Platform.OS === 'android' && showTimePicker && (
         <DateTimePicker
           value={selectedTime}
+          onChange={handleTimeChange}
           mode="time"
           display="default"
-          onChange={handleTimeChange}
           minuteInterval={15}
         />
       )}
