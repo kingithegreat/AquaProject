@@ -9,10 +9,22 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useAuth } from '@/hooks/useAuth';
 import withProtectedRoute from '@/hooks/withProtectedRoute';
+import { Colors } from '@/constants/Colors';
+
+// Define Booking type for proper state typing
+type Booking = {
+  id: string;
+  createdAt: { toDate?: () => Date } | Date | string;
+  status: string;
+  serviceType: string;
+  quantity: number;
+  totalAmount: number;
+  notes?: string;
+};
 
 function AccountPage() {
   const { user, logout } = useAuth();
-  const [bookings, setBookings] = useState([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch user's bookings
@@ -33,11 +45,10 @@ function AccountPage() {
           ...doc.data()
         }));
         
-        // Sort bookings by date (newest first)
+        // Sort bookings by creation date (newest first)
         bookingsData.sort((a, b) => {
-          // Convert Firestore timestamps to JavaScript Date objects
-          const dateA = a.bookingDate?.toDate?.() || new Date(a.bookingDate);
-          const dateB = b.bookingDate?.toDate?.() || new Date(b.bookingDate);
+          const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt);
+          const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt);
           return dateB - dateA;
         });
         
@@ -70,7 +81,7 @@ function AccountPage() {
   };
 
   // Format timestamp to readable date and time
-  const formatBookingDate = (timestamp) => {
+  const formatBookingDate = (timestamp: Booking['createdAt']): string => {
     try {
       // Handle both Firestore Timestamp and regular Date objects
       const date = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -82,13 +93,17 @@ function AccountPage() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView
+      style={styles.container}
+      lightColor={Colors.light.palette.primary.light}
+      darkColor={Colors.dark.palette.primary.light}
+    >
       <Stack.Screen options={{ 
         title: 'My Account',
         headerStyle: {
-          backgroundColor: '#21655A',
+          backgroundColor: '#ffffff', // changed to white header
         },
-        headerTintColor: '#fff',
+        headerTintColor: '#000000', // changed tint to black
         headerTitleStyle: {
           fontWeight: 'bold',
         },
@@ -132,7 +147,7 @@ function AccountPage() {
               <View key={booking.id} style={styles.bookingCard}>
                 <View style={styles.bookingHeader}>
                   <ThemedText style={styles.bookingDate}>
-                    {formatBookingDate(booking.bookingDate)}
+                    {formatBookingDate(booking.createdAt)}
                   </ThemedText>
                   <View style={[
                     styles.statusBadge,
@@ -146,15 +161,20 @@ function AccountPage() {
                 
                 <View style={styles.bookingDetails}>
                   <View style={styles.detailRow}>
-                    <ThemedText style={styles.detailLabel}>Activity:</ThemedText>
-                    <ThemedText style={styles.detailValue}>{booking.activityType || 'Water Activity'}</ThemedText>
+                    <ThemedText style={styles.detailLabel}>Service:</ThemedText>
+                    <ThemedText style={styles.detailValue}>
+                      {booking.serviceType === 'jetski' ? `Jet Skis (${booking.quantity})` : 
+                       booking.serviceType === 'aqualounge' ? 'Aqua Lounge' : 'Guided Tours'}
+                    </ThemedText>
                   </View>
-                  
                   <View style={styles.detailRow}>
-                    <ThemedText style={styles.detailLabel}>Participants:</ThemedText>
-                    <ThemedText style={styles.detailValue}>{booking.participants || 1}</ThemedText>
+                    <ThemedText style={styles.detailLabel}>Quantity:</ThemedText>
+                    <ThemedText style={styles.detailValue}>{booking.quantity}</ThemedText>
                   </View>
-                  
+                  <View style={styles.detailRow}>
+                    <ThemedText style={styles.detailLabel}>Total:</ThemedText>
+                    <ThemedText style={styles.detailValue}>${booking.totalAmount}</ThemedText>
+                  </View>
                   {booking.notes && (
                     <View style={styles.notesContainer}>
                       <ThemedText style={styles.notesLabel}>Notes:</ThemedText>
@@ -188,11 +208,9 @@ const windowWidth = Dimensions.get('window').width;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F6F8FA',
   },
   scrollView: {
     flex: 1,
-    backgroundColor: '#F6F8FA',
   },
   scrollContent: {
     flexGrow: 1,
