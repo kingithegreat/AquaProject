@@ -227,11 +227,11 @@ export default function HomeScreen() {
 
           {/* Reviews Section */}
           <ThemedView style={styles.reviewsSection}>
-            <TouchableOpacity onPress={handleSeeAllReviews}>
+            <View style={styles.reviewsHeader}>
               <ThemedText type="heading2" style={styles.sectionTitle}>
                 Customer Reviews
               </ThemedText>
-            </TouchableOpacity>
+            </View>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -247,6 +247,14 @@ export default function HomeScreen() {
                 />
               ))}
             </ScrollView>
+            <TouchableOpacity 
+              style={styles.seeAllReviewsButton}
+              onPress={handleSeeAllReviews}
+            >
+              <ThemedText style={styles.seeAllReviewsText}>
+                See all customer reviews
+              </ThemedText>
+            </TouchableOpacity>
           </ThemedView>
           
           {/* Flexible spacer to push footer to the bottom */}
@@ -494,19 +502,51 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     paddingHorizontal: 16,
     backgroundColor: '#f8f8f8',
+    borderRadius: 15,
+    width: '90%',
+    marginHorizontal: '5%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  reviewsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   sectionTitle: {
     marginBottom: 15,
     textAlign: 'center',
     color: '#005662',
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  seeAllReviewsButton: {
+    backgroundColor: '#21655A',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    alignSelf: 'center',
+    marginTop: 15,
+    marginBottom: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  seeAllReviewsText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   reviewsCarousel: {
     width: '100%',
     maxHeight: 250,
-  },
-  reviewsContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 10,
   },
   paginationDots: {
     flexDirection: 'row',
