@@ -318,9 +318,9 @@ function BookingScreen() {
       <Stack.Screen options={{ 
         title: 'Book Your Adventure',
         headerStyle: {
-          backgroundColor: '#000000',
+          backgroundColor: '#FFFFFF', // Changed to white to match the rest of the app
         },
-        headerTintColor: '#FFFFFF',
+        headerTintColor: '#000000', // Changed to black for contrast on white background
         headerTitleStyle: {
           fontWeight: 'bold',
         },

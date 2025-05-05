@@ -335,6 +335,10 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 40,
     fontWeight: 'bold',
+    lineHeight: 46, // Added line height for proper text rendering
+    includeFontPadding: false, // Prevents Android from cutting off top of text
+    textAlignVertical: 'center', // Ensures text is centered vertically (Android)
+    paddingTop: 4, // Small padding to ensure character is visibly centered
   },
   userEmail: {
     fontSize: 18,
