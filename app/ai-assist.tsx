@@ -174,9 +174,13 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     marginBottom: 20,
-    padding: 16,
+    paddingVertical: 15,
+    paddingHorizontal: 16,
     borderRadius: 15,
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    minHeight: 65, // Added minimum height
+    justifyContent: 'center', // Center text vertically
+    alignItems: 'center', // Center text horizontally
   },
   title: {
     fontSize: 28,
@@ -186,6 +190,9 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.1)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
+    lineHeight: 34, // Added line height
+    includeFontPadding: false, // Prevents Android from cutting off top of text
+    textAlignVertical: 'center', // Ensures text is centered vertically (Android)
   },
   chatHistoryContainer: {
     flex: 1,
