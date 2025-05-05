@@ -209,10 +209,14 @@ const styles = StyleSheet.create({
     borderRadius: 60,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32, // Increased from 28
     fontWeight: 'bold',
     color: '#21655A',
     marginTop: 15,
+    letterSpacing: 1, // Added letter spacing
+    lineHeight: 40, // Added proper line height
+    paddingHorizontal: 8, // Added horizontal padding
+    textAlign: 'center', // Ensure text is centered
   },
   subtitle: {
     fontSize: 16,

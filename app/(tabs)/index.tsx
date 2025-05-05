@@ -3,11 +3,22 @@ import { StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, View, Image, Di
 import { Stack, router, useFocusEffect } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { Asset } from 'expo-asset';
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { db } from '@/config/firebase';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import ReviewCard from '@/components/ui/ReviewCard';
 import { useAuth } from '@/hooks/useAuth';
+
+// Define review interface
+interface Review {
+  id?: string;
+  author: string;
+  text: string;
+  rating: number;
+  createdAt?: Date;
+}
 
 // Pre-load images to prevent rendering delays
 const preloadImages = async () => {
@@ -68,18 +79,60 @@ function GlassBackground({ style, intensity = 50, children, noRadius = false }: 
 export default function HomeScreen() {
   const { user, logout, loading } = useAuth();
   const [imagesLoaded, setImagesLoaded] = useState(false);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  
+  // Fetch reviews from Firestore
+  const fetchReviews = async () => {
+    try {
+      setReviewsLoading(true);
+      const reviewsQuery = query(
+        collection(db, 'reviews'),
+        orderBy('createdAt', 'desc'),
+        limit(5) // Limit to 5 most recent reviews
+      );
+      
+      const querySnapshot = await getDocs(reviewsQuery);
+      const fetchedReviews: Review[] = [];
+      
+      querySnapshot.forEach((doc) => {
+        try {
+          const data = doc.data();
+          fetchedReviews.push({
+            id: doc.id,
+            author: data.author,
+            text: data.text,
+            rating: data.rating,
+            createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt)
+          });
+        } catch (error) {
+          console.error('Error processing review document:', error);
+        }
+      });
+      
+      setReviews(fetchedReviews);
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
   
   // Preload images when component mounts
   useEffect(() => {
     preloadImages().then(() => setImagesLoaded(true));
+    fetchReviews();
   }, []);
   
-  // Reset image loading state when screen gains focus
+  // Reset image loading state and fetch fresh reviews when screen gains focus
   useFocusEffect(
     useCallback(() => {
       if (!imagesLoaded) {
         preloadImages().then(() => setImagesLoaded(true));
       }
+      // Fetch fresh reviews each time the screen comes into focus
+      fetchReviews();
+      
       return () => {};
     }, [imagesLoaded])
   );
@@ -129,12 +182,6 @@ export default function HomeScreen() {
       });
     }
   };
-
-  const reviews = [
-    { author: 'Alice', text: 'Great experience! Highly recommend.', rating: 5 },
-    { author: 'Bob', text: 'Nice place, friendly staff.', rating: 4 },
-    { author: 'Charlie', text: 'Amazing views and fun activities.', rating: 5 },
-  ];
 
   // If images or auth are still loading, show loading indicator
   if (loading || !imagesLoaded) {
@@ -232,27 +279,42 @@ export default function HomeScreen() {
                 Customer Reviews
               </ThemedText>
             </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.reviewsCarousel}
-              contentContainerStyle={styles.reviewsContent}
-            >
-              {reviews.map((review, index) => (
-                <ReviewCard
-                  key={index}
-                  text={review.text}
-                  author={review.author}
-                  rating={review.rating}
-                />
-              ))}
-            </ScrollView>
+            {reviewsLoading ? (
+              <View style={styles.reviewLoadingContainer}>
+                <ActivityIndicator size="small" color="#21655A" />
+                <ThemedText style={styles.reviewLoadingText}>
+                  Loading reviews...
+                </ThemedText>
+              </View>
+            ) : reviews.length === 0 ? (
+              <View style={styles.noReviewsContainer}>
+                <ThemedText style={styles.noReviewsText}>
+                  No reviews available. Be the first to share your experience!
+                </ThemedText>
+              </View>
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.reviewsCarousel}
+                contentContainerStyle={styles.reviewsContent}
+              >
+                {reviews.map((review, index) => (
+                  <ReviewCard
+                    key={review.id || index}
+                    text={review.text}
+                    author={review.author}
+                    rating={review.rating}
+                  />
+                ))}
+              </ScrollView>
+            )}
             <TouchableOpacity 
               style={styles.seeAllReviewsButton}
               onPress={handleSeeAllReviews}
             >
               <ThemedText style={styles.seeAllReviewsText}>
-                See all customer reviews
+                {reviews.length > 0 ? 'See all customer reviews' : 'Share your experience'}
               </ThemedText>
             </TouchableOpacity>
           </ThemedView>
@@ -553,6 +615,33 @@ const styles = StyleSheet.create({
   reviewsCarousel: {
     width: '100%',
     maxHeight: 250,
+  },
+  reviewsContent: {
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+    paddingTop: 5,
+    alignItems: 'center',
+  },
+  reviewLoadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reviewLoadingText: {
+    marginLeft: 10,
+    color: '#21655A',
+    fontSize: 16,
+  },
+  noReviewsContainer: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noReviewsText: {
+    marginBottom: 10,
+    color: '#21655A',
+    fontSize: 16,
+    textAlign: 'center',
   },
   paginationDots: {
     flexDirection: 'row',

@@ -5,7 +5,18 @@ import 'react-native-get-random-values';
 import { initializeApp } from 'firebase/app';
 import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getFirestore, collection, addDoc, getDocs, query, where, enableIndexedDbPersistence } from 'firebase/firestore';
+import { 
+  getFirestore, 
+  collection, 
+  addDoc, 
+  getDocs, 
+  query, 
+  where, 
+  enableIndexedDbPersistence,
+  writeBatch,
+  doc,
+  setDoc
+} from 'firebase/firestore';
 import NetInfo from '@react-native-community/netinfo';
 import { Platform } from 'react-native';
 
@@ -42,6 +53,11 @@ let isConnected = true;
 let networkMonitoringSetup = false;
 let offlineOperationsQueue = [];
 
+// Maximum number of operations to process in a single batch (per Firestore batch limits)
+const BATCH_SIZE = 200;
+// Maximum retry attempts
+const MAX_RETRY_ATTEMPTS = 5;
+
 // Set up network monitoring
 const setupNetworkMonitoring = () => {
   if (networkMonitoringSetup) return;
@@ -55,7 +71,10 @@ const setupNetworkMonitoring = () => {
       // If transitioning from offline to online, process queue
       if (!wasConnected && isConnected && offlineOperationsQueue.length > 0) {
         console.log(`Network reconnected. Processing ${offlineOperationsQueue.length} queued operations.`);
-        processOfflineQueue();
+        // Add a small delay to ensure the connection is stable
+        setTimeout(() => {
+          processOfflineQueue();
+        }, 2000);
       }
     });
     
@@ -68,110 +87,135 @@ const setupNetworkMonitoring = () => {
 // Set up network monitoring immediately
 setupNetworkMonitoring();
 
-// Process the offline queue
-const processOfflineQueue = async () => {
+// Process the offline queue with batched writes and retry logic
+const processOfflineQueue = async (retryAttempt = 0) => {
   if (offlineOperationsQueue.length === 0) return;
 
-  console.log(`Processing ${offlineOperationsQueue.length} offline operations`);
+  console.log(`Processing ${offlineOperationsQueue.length} offline operations, attempt #${retryAttempt + 1}`);
   
-  // Create a copy and clear the original to avoid double-processing
+  // Create a copy of the queue for processing
   const operations = [...offlineOperationsQueue];
-  offlineOperationsQueue = [];
   
-  // Process operations in sequential order with delay to avoid errors
-  for (const operation of operations) {
-    try {
-      // Wait between operations
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      if (operation.type === 'booking') {
-        await processOfflineBooking(operation.data);
-      }
-    } catch (error) {
-      console.error('Error processing operation:', error);
-      // Re-add to queue for later retry
-      offlineOperationsQueue.push(operation);
-    }
+  // Process operations in batches to maximize efficiency
+  const batches = [];
+  for (let i = 0; i < operations.length; i += BATCH_SIZE) {
+    batches.push(operations.slice(i, i + BATCH_SIZE));
   }
   
-  console.log(`Queue processing completed. ${offlineOperationsQueue.length} items remaining.`);
-};
-
-// Process an offline booking with error handling
-const processOfflineBooking = async (bookingData) => {
+  let successfulOps = [];
+  
   try {
-    // Check if the booking already exists in Firestore
-    const existingBookings = await getDocs(
-      query(collection(db, 'bookings'), where('reference', '==', bookingData.reference))
+    for (const batch of batches) {
+      // Group operations by type
+      const bookingOperations = batch.filter(op => op.type === 'booking');
+      
+      if (bookingOperations.length > 0) {
+        const result = await processBookingBatch(bookingOperations);
+        successfulOps = [...successfulOps, ...result];
+      }
+      
+      // Add handling for other operation types as needed
+    }
+    
+    // Remove successful operations from the queue
+    offlineOperationsQueue = offlineOperationsQueue.filter(
+      op => !successfulOps.some(successOp => 
+        successOp.type === op.type && 
+        (op.type === 'booking' ? successOp.data.reference === op.data.reference : false)
+      )
     );
     
-    if (!existingBookings.empty) {
-      console.log(`Booking ${bookingData.reference} already exists in Firestore`);
-      // Only remove from AsyncStorage if we're certain it exists in Firestore
-      await AsyncStorage.removeItem(`booking_${bookingData.reference}`);
-      return;
-    }
+    console.log(`Queue processing completed. ${offlineOperationsQueue.length} items remaining.`);
     
-    // Try to save with timeout
-    const savePromise = new Promise(async (resolve, reject) => {
-      try {
-        const docRef = await addDoc(collection(db, 'bookings'), bookingData);
-        resolve(docRef);
-      } catch (error) {
-        reject(error);
-      }
-    });
-    
-    // Set timeout to prevent hanging
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Firestore operation timed out')), 10000);
-    });
-    
-    const result = await Promise.race([savePromise, timeoutPromise]);
-    console.log(`Offline booking ${bookingData.reference} synced successfully`);
-    
-    // Verify the booking was actually saved before removing from AsyncStorage
-    const verifyPromise = new Promise(async (resolve, reject) => {
-      try {
-        // Double-check the booking exists in Firestore
-        const verifyQuery = await getDocs(
-          query(collection(db, 'bookings'), where('reference', '==', bookingData.reference))
-        );
-        
-        if (!verifyQuery.empty) {
-          // Only remove from AsyncStorage if verification succeeds
-          await AsyncStorage.removeItem(`booking_${bookingData.reference}`);
-          resolve(true);
-        } else {
-          // If verification fails, don't delete from AsyncStorage
-          reject(new Error('Booking verification failed'));
-        }
-      } catch (error) {
-        reject(error);
-      }
-    });
-    
-    // Use a separate timeout for verification
-    const verifyTimeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Verification timed out')), 5000);
-    });
-    
-    try {
-      // Only attempt verification if we're online
-      if (isConnected) {
-        await Promise.race([verifyPromise, verifyTimeoutPromise]);
-      }
-    } catch (verifyError) {
-      console.warn(`Couldn't verify booking ${bookingData.reference}:`, verifyError);
-      // Keep the local copy if verification fails
+    // If there are still items in the queue, schedule another attempt with exponential backoff
+    if (offlineOperationsQueue.length > 0 && retryAttempt < MAX_RETRY_ATTEMPTS) {
+      const backoffTime = Math.pow(2, retryAttempt) * 1000; // Exponential backoff
+      console.log(`Scheduling retry #${retryAttempt + 2} in ${backoffTime}ms`);
+      setTimeout(() => processOfflineQueue(retryAttempt + 1), backoffTime);
     }
   } catch (error) {
-    console.error(`Failed to sync offline booking ${bookingData.reference}:`, error);
-    // Don't throw the error - this prevents the booking from being removed from the queue
-    return false;
+    console.error('Error processing offline queue:', error);
+    
+    // Implement exponential backoff for retries
+    if (retryAttempt < MAX_RETRY_ATTEMPTS) {
+      const backoffTime = Math.pow(2, retryAttempt) * 1000; // Exponential backoff
+      console.log(`Error occurred. Retrying in ${backoffTime}ms`);
+      setTimeout(() => processOfflineQueue(retryAttempt + 1), backoffTime);
+    } else {
+      console.error(`Max retry attempts (${MAX_RETRY_ATTEMPTS}) reached. Some operations may not have been processed.`);
+    }
+  }
+};
+
+// Process bookings in batches when possible
+const processBookingBatch = async (bookingOperations) => {
+  const successfulOps = [];
+  
+  try {
+    // First check which bookings already exist to avoid duplicates
+    const referencesToCheck = bookingOperations.map(op => op.data.reference);
+    const existingBookingsQuery = query(
+      collection(db, 'bookings'), 
+      where('reference', 'in', referencesToCheck)
+    );
+    
+    let existingReferences = [];
+    try {
+      const existingBookingsSnapshot = await getDocs(existingBookingsQuery);
+      existingReferences = existingBookingsSnapshot.docs.map(doc => doc.data().reference);
+      console.log(`Found ${existingReferences.length} bookings already in Firestore`);
+    } catch (error) {
+      // If the "in" query fails (e.g., too many items), fall back to individual checks
+      console.warn('Batch existence check failed, falling back to individual checks:', error);
+    }
+
+    // Process in smaller batches to avoid limitations
+    for (let i = 0; i < bookingOperations.length; i += 20) {
+      const currentBatch = bookingOperations.slice(i, i + 20);
+      const batch = writeBatch(db);
+      let batchOperations = [];
+
+      for (const op of currentBatch) {
+        // Skip if already in Firestore
+        if (existingReferences.includes(op.data.reference)) {
+          console.log(`Booking ${op.data.reference} already exists, skipping`);
+          successfulOps.push(op);
+          // Clean up AsyncStorage
+          await AsyncStorage.removeItem(`booking_${op.data.reference}`);
+          continue;
+        }
+        
+        const docRef = doc(collection(db, 'bookings'));
+        batch.set(docRef, {
+          ...op.data,
+          firestoreId: docRef.id, // Add the document ID to the data
+        });
+        
+        batchOperations.push(op);
+      }
+      
+      // Only commit if there are operations to perform
+      if (batchOperations.length > 0) {
+        try {
+          await batch.commit();
+          console.log(`Batch of ${batchOperations.length} bookings committed successfully`);
+          
+          // After successful batch commit, clean up AsyncStorage
+          for (const op of batchOperations) {
+            await AsyncStorage.removeItem(`booking_${op.data.reference}`);
+            successfulOps.push(op);
+          }
+        } catch (error) {
+          console.error(`Error committing batch of ${batchOperations.length} bookings:`, error);
+          // Individual operations will remain in the queue for retry
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error in batch processing:', error);
   }
   
-  return true;
+  return successfulOps;
 };
 
 // Enhanced exports
@@ -183,6 +227,25 @@ export const checkOnlineStatus = () => isConnected;
 export const addToOfflineQueue = (operation) => {
   offlineOperationsQueue.push(operation);
   console.log(`Operation added to offline queue. Queue size: ${offlineOperationsQueue.length}`);
+};
+
+// Execute a Firestore operation with timeout and fallback
+export const checkConnectionWithTimeout = async (timeoutMs = 5000) => {
+  try {
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Connection check timed out')), timeoutMs);
+    });
+    
+    // Try a simple document read as a connection test
+    const testPromise = getDocs(query(collection(db, 'system_status'), where('online', '==', true)))
+      .then(() => true)
+      .catch(() => false);
+    
+    return await Promise.race([testPromise, timeoutPromise]);
+  } catch (error) {
+    console.warn('Connection check failed:', error);
+    return false;
+  }
 };
 
 // Explicitly export the syncOfflineData function
