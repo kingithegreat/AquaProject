@@ -38,9 +38,9 @@ export default function LoginScreen() {
       console.log('Login successful');
       
       if (redirect) {
-        router.replace(redirect as string);
+        router.replace(redirect as any);
       } else {
-        router.replace('/account'); // Navigate to new account page by default
+        router.replace('/account');
       }
     } catch (error: any) { // Proper typing for error
       console.error('Firebase login error DETAILS:', {

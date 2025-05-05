@@ -3,9 +3,10 @@ import { StyleSheet, View, TextInput, TouchableOpacity, SafeAreaView, KeyboardAv
 import { router, useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator } from 'react-native';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/config/firebase';
+import { auth } from '../config/firebase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedText } from '../components/ThemedText';
 
 export default function SignupScreen() {
   const [email, setEmail] = useState('');
@@ -49,9 +50,9 @@ export default function SignupScreen() {
       console.log('Account creation successful');
       
       if (redirect) {
-        router.replace(redirect as string);
+        router.replace(redirect as any);
       } else {
-        router.replace('/account'); // Navigate to account page by default
+        router.replace('/account');
       }
     } catch (error: any) {
       console.error('Firebase signup error:', error.code, error.message);

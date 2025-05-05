@@ -1,3 +1,7 @@
+// Add global polyfills for URL and crypto
+import 'react-native-url-polyfill/auto';
+import 'react-native-get-random-values';
+
 // Root layout for Aqua 360° App - handles navigation and app-wide configuration
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
@@ -27,7 +31,7 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
   const [isLoadingComplete, setLoadingComplete] = useState(false);
-  const [loadError, setLoadError] = useState(null);
+  const [loadError, setLoadError] = useState<Error | null>(null);
 
   useEffect(() => {
     async function prepare() {
@@ -45,7 +49,7 @@ export default function RootLayout() {
         }
       } catch (e) {
         console.warn('Error preparing app:', e);
-        setLoadError(e);
+        setLoadError(e as Error);
         await SplashScreen.hideAsync();
         setLoadingComplete(true); // Continue anyway, but with error state
       }

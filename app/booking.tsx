@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -15,13 +15,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, addDoc } from 'firebase/firestore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
 import { Colors } from '../constants/Colors';
-import { withProtectedRoute } from '@/hooks/withProtectedRoute';
-import { useAuth } from '@/hooks/useAuth';
-import { db } from '@/config/firebase';
+import { withProtectedRoute } from '../hooks/withProtectedRoute';
+import { useAuth } from '../hooks/useAuth';
+import { getFirebaseFirestore } from '../config/firebase';
 
 /**
  * BookingScreen Component
@@ -38,6 +40,7 @@ import { db } from '@/config/firebase';
  */
 function BookingScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   
   // State for date and time selection
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -64,6 +67,20 @@ function BookingScreen() {
   
   // State to store the generated booking reference number
   const [bookingReference, setBookingReference] = useState('');
+  
+  // State for loading indicator
+  const [loading, setLoading] = useState(false);
+
+  // State for network connectivity
+  const [isConnected, setIsConnected] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsConnected(state.isConnected);
+    });
+
+    return () => unsubscribe();
+  }, []);
   
   /**
    * Helper function to format date in a user-friendly way
@@ -173,15 +190,15 @@ function BookingScreen() {
   /**
    * Handles booking confirmation
    * Validates required fields, generates booking reference, and shows confirmation modal
+   * Includes offline support and connection error handling
    */
   const handleConfirmBooking = async () => {
+    console.log('handleConfirmBooking start');
+    
     if (!selectedService) {
       Alert.alert('Selection Required', 'Please select a service type.');
       return;
     }
-    
-    // Get the current user from the auth context
-    const { user } = useAuth();
     
     if (!user || !user.uid) {
       Alert.alert('Authentication Error', 'Please log in again before booking.');
@@ -191,6 +208,9 @@ function BookingScreen() {
     // Generate random booking reference with 'BK-' prefix
     const ref = 'BK-' + Math.floor(100000 + Math.random() * 900000);
     setBookingReference(ref);
+    
+    // Show loading indicator
+    setLoading(true);
     
     try {
       // Create booking object with all relevant details
@@ -213,27 +233,78 @@ function BookingScreen() {
         createdAt: new Date(),
       };
       
-      // Save booking to Firestore with better error handling
       console.log('Saving booking to Firestore:', bookingData);
-      try {
-        const bookingRef = await addDoc(collection(db, 'bookings'), bookingData);
-        console.log('Booking saved with ID:', bookingRef.id);
-        
-        // Show confirmation modal
-        setShowConfirmation(true);
-      } catch (firestoreError) {
-        console.error('Firestore error:', firestoreError);
-        Alert.alert(
-          'Database Error', 
-          'Could not save your booking to the database. Please try again later.'
-        );
+      const firestoreDb = await getFirebaseFirestore();
+      
+      if (isConnected) {
+        try {
+          const bookingRef = await addDoc(collection(firestoreDb, 'bookings'), bookingData);
+          console.log('Booking saved with ID:', bookingRef.id);
+          
+          // Store locally in AsyncStorage as backup
+          try {
+            const existingBookingsJSON = await AsyncStorage.getItem('local_bookings');
+            const existingBookings = existingBookingsJSON ? JSON.parse(existingBookingsJSON) : [];
+            
+            // Add the new booking with its Firestore ID
+            existingBookings.push({
+              ...bookingData,
+              id: bookingRef.id,
+              syncedToFirestore: true
+            });
+            
+            await AsyncStorage.setItem('local_bookings', JSON.stringify(existingBookings));
+            console.log('Booking also saved to AsyncStorage');
+          } catch (asyncError) {
+            console.warn('Failed to save booking to AsyncStorage:', asyncError);
+          }
+          
+          // Show confirmation modal
+          setShowConfirmation(true);
+        } catch (firestoreError) {
+          console.error('Firestore error:', firestoreError);
+          Alert.alert(
+            'Booking Error', 
+            'There was a problem saving your booking. Please try again.'
+          );
+        }
+      } else {
+        // Handle offline case - store locally only
+        try {
+          const existingBookingsJSON = await AsyncStorage.getItem('local_bookings');
+          const existingBookings = existingBookingsJSON ? JSON.parse(existingBookingsJSON) : [];
+          
+          // Add the new booking (without Firestore ID)
+          existingBookings.push({
+            ...bookingData,
+            id: `local-${Date.now()}`,
+            syncedToFirestore: false
+          });
+          
+          await AsyncStorage.setItem('local_bookings', JSON.stringify(existingBookings));
+          console.log('Booking saved to AsyncStorage (offline mode)');
+          
+          Alert.alert(
+            'Booking Saved Locally', 
+            'Your booking was saved to your device. It will be synchronized with our servers when your connection is restored.',
+            [{ text: 'OK', onPress: () => setShowConfirmation(true) }]
+          );
+        } catch (asyncError) {
+          console.error('Failed to save booking locally:', asyncError);
+          Alert.alert(
+            'Booking Error', 
+            'There was a problem saving your booking. Please check your internet connection and try again.'
+          );
+        }
       }
     } catch (error) {
-      console.error('Error saving booking:', error);
+      console.error('Error in booking process:', error);
       Alert.alert(
         'Booking Error', 
-        'There was a problem with your booking. Please try again.'
+        'There was an unexpected problem with your booking. Please try again.'
       );
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -445,11 +516,20 @@ function BookingScreen() {
         
         {/* Confirm Booking Button */}
         <TouchableOpacity
-          style={styles.confirmButton}
-          onPress={handleConfirmBooking}
+          style={[
+            styles.confirmButton, 
+            !selectedService ? styles.confirmButtonDisabled : styles.confirmButtonActive
+          ]}
+          onPress={() => { 
+            console.log('Confirm button pressed'); 
+            handleConfirmBooking(); 
+          }}
           disabled={!selectedService}
+          activeOpacity={0.7}
         >
-          <ThemedText style={styles.confirmButtonText}>Confirm Booking</ThemedText>
+          <ThemedText style={styles.confirmButtonText}>
+            Confirm Booking
+          </ThemedText>
         </TouchableOpacity>
       </ScrollView>
       
@@ -827,11 +907,16 @@ const styles = StyleSheet.create({
     fontSize: 18, // Increased from default to 18
   },
   confirmButton: {
-    backgroundColor: Colors.light.palette.secondary.main,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
     marginVertical: 16,
+  },
+  confirmButtonActive: {
+    backgroundColor: '#21655A', // Using a direct color instead of Colors.light.palette.secondary.main
+  },
+  confirmButtonDisabled: {
+    backgroundColor: '#93beab', // Using a lighter, direct color value
   },
   confirmButtonText: {
     color: Colors.light.palette.secondary.contrast,
