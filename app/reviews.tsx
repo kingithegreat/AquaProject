@@ -182,26 +182,30 @@ export default function ReviewsScreen() {
     setIsLoading(true);
     
     try {
+      console.log('Submitting new review...');
+      
       // Create review object
       const reviewData: Omit<Review, 'id'> = {
         author,
         email,
         text,
         rating: Math.max(1, Math.min(5, parseInt(rating))),
-        createdAt: new Date() // Use Date object instead of Firestore Timestamp
+        createdAt: new Date() // This will be automatically converted to Firestore timestamp
       };
+      
+      console.log('Review data to submit:', JSON.stringify(reviewData));
       
       // Save to Firestore
       const docRef = await addDoc(collection(db, 'reviews'), reviewData);
+      console.log('Review saved with ID:', docRef.id);
       
       // Add to local state with generated ID
-      setReviews([
-        {
-          id: docRef.id,
-          ...reviewData
-        },
-        ...reviews
-      ]);
+      const newReview = {
+        id: docRef.id,
+        ...reviewData
+      };
+      
+      setReviews([newReview, ...reviews]);
       
       // Reset form
       setAuthor('');

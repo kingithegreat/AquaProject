@@ -25,6 +25,7 @@ const preloadImages = async () => {
   try {
     const images = [
       require('../../assets/images/about-us-image.webp'),
+      require('../../assets/images/aqua-360-logo.png'),
     ];
     
     await Promise.all(images.map(image => Asset.fromModule(image).downloadAsync()));
@@ -86,6 +87,8 @@ export default function HomeScreen() {
   const fetchReviews = async () => {
     try {
       setReviewsLoading(true);
+      console.log("Fetching reviews from Firestore...");
+      
       const reviewsQuery = query(
         collection(db, 'reviews'),
         orderBy('createdAt', 'desc'),
@@ -95,21 +98,46 @@ export default function HomeScreen() {
       const querySnapshot = await getDocs(reviewsQuery);
       const fetchedReviews: Review[] = [];
       
+      console.log(`Found ${querySnapshot.size} reviews in Firestore`);
+      
       querySnapshot.forEach((doc) => {
         try {
           const data = doc.data();
+          console.log(`Processing review document: ${doc.id}`);
+          
+          // Safely handle createdAt date conversion
+          let createdAtDate;
+          try {
+            // If it's a Firestore timestamp, use toDate()
+            if (data.createdAt && typeof data.createdAt.toDate === 'function') {
+              createdAtDate = data.createdAt.toDate();
+            } 
+            // If it's a date string or timestamp number
+            else if (data.createdAt) {
+              createdAtDate = new Date(data.createdAt);
+            } 
+            // Default to now if no date exists
+            else {
+              createdAtDate = new Date();
+            }
+          } catch (dateError) {
+            console.error('Error converting date:', dateError);
+            createdAtDate = new Date(); // Fallback to current date
+          }
+          
           fetchedReviews.push({
             id: doc.id,
-            author: data.author,
-            text: data.text,
-            rating: data.rating,
-            createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt)
+            author: data.author || 'Anonymous',
+            text: data.text || 'No review text provided',
+            rating: Number(data.rating) || 5,
+            createdAt: createdAtDate
           });
         } catch (error) {
-          console.error('Error processing review document:', error);
+          console.error(`Error processing review document ${doc.id}:`, error);
         }
       });
       
+      console.log(`Successfully processed ${fetchedReviews.length} reviews`);
       setReviews(fetchedReviews);
     } catch (error) {
       console.error('Error fetching reviews:', error);
@@ -322,18 +350,38 @@ export default function HomeScreen() {
           {/* Flexible spacer to push footer to the bottom */}
           <View style={styles.flexSpacer} />
           
-          {/* Footer Section - now scrollable with the content but pushed to bottom */}
-          <GlassBackground style={styles.footer} intensity={90} noRadius={true}>
-            <ThemedText style={styles.footerTitle}>Aqua 360°</ThemedText>
-            <ThemedText style={styles.footerText}>
-              Pilot Bay (Mount End) Beach, Mount Maunganui
-            </ThemedText>
-            <ThemedText style={styles.footerText}>
-              Email: admin@aqua360.co.nz
-            </ThemedText>
-            <ThemedText style={styles.footerText}>
-              Phone: 021 2782 360
-            </ThemedText>
+          {/* Footer Section with updated design to match header */}
+          <GlassBackground style={styles.footer} intensity={80} noRadius={true}>
+            <View style={styles.footerLogoContainer}>
+              <Image 
+                source={require('../../assets/images/aqua-360-logo.png')}
+                style={styles.footerLogo}
+                resizeMode="contain"
+              />
+              <ThemedText style={styles.footerTitle}>Aqua 360°</ThemedText>
+            </View>
+            
+            <View style={styles.footerContentContainer}>
+              <View style={styles.footerInfoColumn}>
+                <ThemedText style={styles.footerSectionTitle}>Location</ThemedText>
+                <ThemedText style={styles.footerText}>
+                  Pilot Bay (Mount End) Beach, Mount Maunganui
+                </ThemedText>
+              </View>
+              
+              <View style={styles.footerInfoColumn}>
+                <ThemedText style={styles.footerSectionTitle}>Contact</ThemedText>
+                <ThemedText style={styles.footerText}>
+                  Email: admin@aqua360.co.nz
+                </ThemedText>
+                <ThemedText style={styles.footerText}>
+                  Phone: 021 2782 360
+                </ThemedText>
+              </View>
+            </View>
+            
+            <View style={styles.footerDivider} />
+            
             <ThemedText style={styles.footerCopyright}>
               © 2025 Aqua 360° - All Rights Reserved
             </ThemedText>
@@ -674,17 +722,50 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,  // Round the top left corner
     borderTopRightRadius: 20, // Round the top right corner
   },
+  footerLogoContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  footerLogo: {
+    width: 100,
+    height: 100,
+    marginBottom: 10,
+    borderRadius: 50, // Makes the logo completely round
+    borderWidth: 2, // Add a border
+    borderColor: 'rgba(255, 255, 255, 0.8)', // White border for nice contrast against the teal background
+  },
   footerTitle: {
     color: '#ffffff',
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 15,
+  },
+  footerContentContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 20,
+  },
+  footerInfoColumn: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  footerSectionTitle: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
   },
   footerText: {
     color: '#ffffff',
     fontSize: 16,
     marginBottom: 8,
     textAlign: 'center',
+  },
+  footerDivider: {
+    width: '90%',
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    marginBottom: 20,
   },
   footerCopyright: {
     color: '#ffffff',
