@@ -3,10 +3,9 @@ import { StyleSheet, View, TextInput, TouchableOpacity, SafeAreaView, KeyboardAv
 import { router, useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator } from 'react-native';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../config/firebase';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { auth } from '@/config/firebase';
 
-import { ThemedText } from '../components/ThemedText';
+import { ThemedText } from '@/components/ThemedText';
 
 export default function SignupScreen() {
   const [email, setEmail] = useState('');

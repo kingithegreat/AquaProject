@@ -15,7 +15,7 @@ import { ThemedText } from '@/components/ThemedText';
 import ReviewCard from '@/components/ui/ReviewCard';
 import { BlurView } from 'expo-blur';
 import { router } from 'expo-router';
-import { collection, addDoc, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { Ionicons } from '@expo/vector-icons';
@@ -69,7 +69,7 @@ interface Review {
   email: string; // Email won't be displayed in ReviewCard but stored
   text: string;
   rating: number;
-  createdAt?: Timestamp;
+  createdAt?: Date; // Changed from Timestamp to Date for Expo Go compatibility
 }
 
 interface FormErrors {
@@ -120,7 +120,8 @@ export default function ReviewsScreen() {
       querySnapshot.forEach((doc) => {
         fetchedReviews.push({
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
+          createdAt: doc.data().createdAt.toDate() // Convert Firestore Timestamp to Date
         } as Review);
       });
       
@@ -187,7 +188,7 @@ export default function ReviewsScreen() {
         email,
         text,
         rating: Math.max(1, Math.min(5, parseInt(rating))),
-        createdAt: Timestamp.now()
+        createdAt: new Date() // Use Date object instead of Firestore Timestamp
       };
       
       // Save to Firestore

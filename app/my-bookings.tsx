@@ -7,21 +7,19 @@ import {
   Image,
   ActivityIndicator,
   Alert,
-  RefreshControl,
-  Text
+  RefreshControl
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { collection, query, where, getDocs, orderBy, addDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
-import NetInfo from '@react-native-community/netinfo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { ThemedText } from '../components/ThemedText';
-import { Colors } from '../constants/Colors';
-import { withProtectedRoute } from '../hooks/withProtectedRoute';
-import { useAuth } from '../hooks/useAuth';
-import { db } from '../config/firebase';
+import { ThemedText } from '@/components/ThemedText';
+import { Colors } from '@/constants/Colors';
+import { withProtectedRoute } from '@/hooks/withProtectedRoute';
+import { useAuth } from '@/hooks/useAuth';
+import { db, checkOnlineStatus, addToOfflineQueue } from '@/config/firebase';
 
 function MyBookingsScreen() {
   const router = useRouter();
@@ -29,43 +27,36 @@ function MyBookingsScreen() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [isConnected, setIsConnected] = useState(true);
-  const [syncInProgress, setSyncInProgress] = useState(false);
-
-  // Subscribe to network state
-  useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener(state => {
-      const isConnected = state.isConnected;
-      console.log(`Network status changed: ${isConnected ? 'online' : 'offline'}`);
-      setIsConnected(isConnected);
-      
-      // When connection is restored, try to sync offline bookings
-      if (isConnected) {
-        syncLocalBookingsToFirestore();
-      }
-    });
-    
-    return () => unsubscribe();
-  }, [user]);
+  const [isOnline, setIsOnline] = useState(true);
 
   // Format date for display
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch (e) {
+      console.warn("Date formatting error:", e);
+      return "Date unavailable";
+    }
   };
 
   // Format time for display
   const formatTime = (timeString) => {
-    const time = new Date(timeString);
-    return time.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    try {
+      const time = new Date(timeString);
+      return time.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (e) {
+      console.warn("Time formatting error:", e);
+      return "Time unavailable";
+    }
   };
 
   // Get service name from service type
@@ -78,155 +69,120 @@ function MyBookingsScreen() {
       case 'tours':
         return 'Guided Tour';
       default:
-        return serviceType;
+        return serviceType || 'Unknown Service';
     }
   };
-
-  // Sync locally stored bookings to Firestore when online
-  const syncLocalBookingsToFirestore = async () => {
-    if (!user?.uid || !isConnected || syncInProgress) return;
-
+  
+  // Check for locally stored bookings that haven't been synced yet
+  const getLocalBookings = async () => {
     try {
-      setSyncInProgress(true);
-      const localBookingsJSON = await AsyncStorage.getItem('local_bookings');
+      const keys = await AsyncStorage.getAllKeys();
+      const bookingKeys = keys.filter(key => key.startsWith('booking_'));
       
-      if (!localBookingsJSON) {
-        setSyncInProgress(false);
-        return;
-      }
+      if (bookingKeys.length === 0) return [];
       
-      const localBookings = JSON.parse(localBookingsJSON);
-      const unsyncedBookings = localBookings.filter(booking => 
-        booking.userId === user.uid && booking.syncedToFirestore === false
-      );
-      
-      if (unsyncedBookings.length === 0) {
-        setSyncInProgress(false);
-        return;
-      }
-      
-      console.log(`Found ${unsyncedBookings.length} unsynced bookings to upload to Firestore`);
-      
-      for (const booking of unsyncedBookings) {
-        try {
-          // Remove local ID and synced flag before saving to Firestore
-          const { id, syncedToFirestore, ...bookingData } = booking;
-          
-          const bookingRef = await addDoc(collection(db, 'bookings'), bookingData);
-          console.log(`Synced local booking to Firestore with ID: ${bookingRef.id}`);
-          
-          // Update the local copy to mark as synced
-          booking.syncedToFirestore = true;
-          booking.id = bookingRef.id;
-        } catch (error) {
-          console.error('Error syncing booking to Firestore:', error);
-        }
-      }
-      
-      // Update local storage with the new sync status
-      await AsyncStorage.setItem('local_bookings', JSON.stringify(localBookings));
-      console.log('Updated local bookings with sync status');
-      
+      const localBookingsData = await AsyncStorage.multiGet(bookingKeys);
+      return localBookingsData.map(([key, value]) => {
+        const booking = JSON.parse(value);
+        return {
+          ...booking,
+          id: key, // Use the AsyncStorage key as ID
+          isLocal: true, // Mark as locally stored booking
+          status: 'pending sync' // Special status for local bookings
+        };
+      }).filter(booking => booking.userId === user?.uid);
     } catch (error) {
-      console.error('Error during booking sync:', error);
-    } finally {
-      setSyncInProgress(false);
+      console.error('Error fetching local bookings:', error);
+      return [];
     }
   };
 
-  // Load all bookings - both from Firestore and local storage
-  const fetchAllBookings = async () => {
+  // Fetch bookings from Firestore and local storage
+  const fetchBookings = async () => {
     try {
       setLoading(true);
+      const online = await checkOnlineStatus();
+      setIsOnline(online);
+      
       if (!user?.uid) {
         console.log('No user logged in');
         setBookings([]);
         setLoading(false);
         return;
       }
+      
+      // Get local bookings first (these will show regardless of connection)
+      const localBookings = await getLocalBookings();
+      console.log(`Found ${localBookings.length} local bookings`);
 
-      // First, try to load from local storage for immediate display
-      let allBookings = [];
-      try {
-        const storedBookings = await AsyncStorage.getItem('local_bookings');
-        if (storedBookings) {
-          const parsedBookings = JSON.parse(storedBookings);
-          // Filter for this user's bookings only
-          const userBookings = parsedBookings.filter(booking => booking.userId === user.uid);
-          allBookings = [...userBookings];
-          console.log(`Loaded ${userBookings.length} bookings from local storage`);
-          
-          // If we have local data, update the UI immediately
-          if (userBookings.length > 0) {
-            setBookings(userBookings);
-          }
-        }
-      } catch (localError) {
-        console.warn('Error loading from local storage:', localError);
-      }
-
-      // Then try to fetch from Firestore if online
-      if (isConnected) {
+      let firestoreBookings = [];
+      
+      // Only attempt to fetch from Firestore if online
+      if (online) {
         try {
           console.log('Fetching bookings from Firestore for user:', user.uid);
           const q = query(
             collection(db, 'bookings'),
-            where('userId', '==', user.uid),
-            orderBy('createdAt', 'desc')
+            where('userId', '==', user.uid)
           );
 
           const querySnapshot = await getDocs(q);
-          const firestoreBookings = [];
           
-          querySnapshot.forEach((doc) => {
+          firestoreBookings = querySnapshot.docs.map(doc => {
             const data = doc.data();
+            // Handle createdAt field safely
             let createdAtDate;
-            
             if (data.createdAt) {
-              createdAtDate = typeof data.createdAt.toDate === 'function' 
-                ? data.createdAt.toDate() 
-                : new Date(data.createdAt);
+              if (typeof data.createdAt === 'string') {
+                createdAtDate = new Date(data.createdAt);
+              } else if (typeof data.createdAt.toDate === 'function') {
+                createdAtDate = data.createdAt.toDate();
+              } else {
+                createdAtDate = new Date();
+              }
             } else {
               createdAtDate = new Date();
             }
             
-            firestoreBookings.push({
+            return {
               id: doc.id,
               ...data,
               createdAt: createdAtDate,
-              syncedToFirestore: true
-            });
+              isLocal: false
+            };
           });
-
-          console.log(`Found ${firestoreBookings.length} bookings in Firestore`);
           
-          // Merge firestore bookings with local bookings, avoiding duplicates
-          const firestoreIds = new Set(firestoreBookings.map(b => b.id));
-          const localOnlyBookings = allBookings.filter(b => !b.syncedToFirestore || !firestoreIds.has(b.id));
-          
-          // Combine and sort by date
-          allBookings = [...firestoreBookings, ...localOnlyBookings].sort((a, b) => {
-            return new Date(b.createdAt) - new Date(a.createdAt);
-          });
-
-          // Update AsyncStorage with the complete list
-          await AsyncStorage.setItem('local_bookings', JSON.stringify(allBookings));
+          console.log(`Found ${firestoreBookings.length} Firestore bookings`);
         } catch (firestoreError) {
           console.error('Error fetching from Firestore:', firestoreError);
-          
-          // If Firestore fetch fails, continue with local bookings
-          if (!allBookings.length) {
-            console.log('Using only local bookings due to Firestore error');
+          if (!localBookings.length) {
+            Alert.alert(
+              'Connection Issue',
+              'Could not load bookings from the server. Showing locally stored bookings only.'
+            );
           }
         }
       } else {
-        console.log('Offline: Using only local bookings');
+        console.log('Device is offline, showing local bookings only');
+        if (!localBookings.length) {
+          Alert.alert(
+            'You\'re Offline',
+            'Internet connection not available. Please connect to the internet to see all your bookings.'
+          );
+        }
       }
-      
+
+      // Combine bookings from both sources and sort them
+      const allBookings = [...firestoreBookings, ...localBookings];
+      allBookings.sort((a, b) => {
+        const dateA = new Date(a.createdAt);
+        const dateB = new Date(b.createdAt);
+        return dateB - dateA; // Sort by date, newest first
+      });
+
       setBookings(allBookings);
-      
     } catch (error) {
-      console.error('Error fetching bookings:', error);
+      console.error('Error in fetchBookings:', error);
       Alert.alert('Error', 'Failed to load your bookings. Please try again.');
     } finally {
       setLoading(false);
@@ -236,84 +192,13 @@ function MyBookingsScreen() {
 
   // Initial load
   useEffect(() => {
-    fetchAllBookings();
-  }, [user, isConnected]);
+    fetchBookings();
+  }, [user]);
 
   // Handle refresh
   const onRefresh = () => {
     setRefreshing(true);
-    fetchAllBookings();
-  };
-
-  // Cancel booking function
-  const handleCancelBooking = async (bookingId, reference) => {
-    Alert.alert(
-      "Cancel Booking",
-      `Are you sure you want to cancel booking ${reference}?`,
-      [
-        { text: "No", style: "cancel" },
-        { 
-          text: "Yes, Cancel", 
-          style: "destructive",
-          onPress: async () => {
-            try {
-              setLoading(true);
-              
-              // First update local storage to ensure immediate UI feedback
-              const localBookingsJSON = await AsyncStorage.getItem('local_bookings');
-              if (localBookingsJSON) {
-                const localBookings = JSON.parse(localBookingsJSON);
-                const updatedBookings = localBookings.map(booking => {
-                  if (booking.id === bookingId || booking.reference === reference) {
-                    return { ...booking, status: 'cancelled' };
-                  }
-                  return booking;
-                });
-                
-                await AsyncStorage.setItem('local_bookings', JSON.stringify(updatedBookings));
-                
-                // Update UI immediately
-                setBookings(prevBookings => 
-                  prevBookings.map(booking => {
-                    if (booking.id === bookingId || booking.reference === reference) {
-                      return { ...booking, status: 'cancelled' };
-                    }
-                    return booking;
-                  })
-                );
-                
-                // If online, update Firestore as well
-                if (isConnected && bookingId && !bookingId.startsWith('local-')) {
-                  try {
-                    // Using the Firestore update method to change the status to cancelled
-                    const bookingRef = doc(db, 'bookings', bookingId);
-                    await updateDoc(bookingRef, {
-                      status: 'cancelled',
-                      cancelledAt: new Date()
-                    });
-                    console.log(`Booking ${reference} cancelled in Firestore`);
-                  } catch (firestoreError) {
-                    console.error('Error updating Firestore:', firestoreError);
-                    // The local state is already updated, so the user still sees the cancellation
-                    Alert.alert(
-                      "Network Issue", 
-                      "Your booking has been cancelled locally, but we couldn't update our servers. It will sync when your connection improves."
-                    );
-                  }
-                }
-                
-                Alert.alert("Success", `Booking ${reference} has been cancelled.`);
-              }
-            } catch (error) {
-              console.error("Error cancelling booking:", error);
-              Alert.alert("Error", "There was a problem cancelling your booking. Please try again.");
-            } finally {
-              setLoading(false);
-            }
-          }
-        }
-      ]
-    );
+    fetchBookings();
   };
 
   return (
@@ -426,13 +311,6 @@ function MyBookingsScreen() {
                       {booking.reference}
                     </ThemedText>
                   </View>
-
-                  <TouchableOpacity
-                    style={styles.cancelButton}
-                    onPress={() => handleCancelBooking(booking.id, booking.reference)}
-                  >
-                    <ThemedText style={styles.cancelButtonText}>Cancel Booking</ThemedText>
-                  </TouchableOpacity>
                 </View>
               ))}
             </>
@@ -604,19 +482,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#21655A',
-  },
-  cancelButton: {
-    backgroundColor: '#FF6B6B',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    margin: 16,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
   },
 });
 

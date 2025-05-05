@@ -4,6 +4,7 @@ import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { format } from 'date-fns';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -14,55 +15,145 @@ import { Colors } from '@/constants/Colors';
 // Define Booking type for proper state typing
 type Booking = {
   id: string;
+  reference?: string;
   createdAt: { toDate?: () => Date } | Date | string;
   status: string;
   serviceType: string;
   quantity: number;
   totalAmount: number;
   notes?: string;
+  isLocal?: boolean;
+  date?: string;
+  time?: string;
+  addOns?: Array<{ id: number, name: string, price: number }>;
 };
 
 function AccountPage() {
   const { user, logout } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0); // Used to force re-render
 
-  // Fetch user's bookings
+  // Fetch both local and remote bookings
   useEffect(() => {
-    const fetchBookings = async () => {
-      if (!user || !user.email) return;
+    const fetchAllBookings = async () => {
+      if (!user || !user.uid) return;
 
       try {
         setLoading(true);
-        const q = query(
-          collection(db, 'bookings'),
-          where('userEmail', '==', user.email)
-        );
-        
-        const querySnapshot = await getDocs(q);
-        const bookingsData = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        
-        // Sort bookings by creation date (newest first)
-        bookingsData.sort((a, b) => {
-          const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt);
-          const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt);
-          return dateB - dateA;
-        });
-        
-        setBookings(bookingsData);
+
+        // Fetch both local and remote bookings in parallel
+        const [firestoreBookings, localBookings] = await Promise.all([
+          fetchFirestoreBookings(),
+          fetchLocalBookings()
+        ]);
+
+        // Merge and deduplicate bookings
+        const mergedBookings = mergeAndDeduplicateBookings(firestoreBookings, localBookings);
+        setBookings(mergedBookings);
       } catch (error) {
         console.error('Error fetching bookings:', error);
-        Alert.alert('Error', 'Could not load your bookings. Please try again later.');
+        Alert.alert('Error', 'Could not load all your bookings. Please try again later.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchBookings();
-  }, [user]);
+    fetchAllBookings();
+  }, [user, refreshKey]);
+
+  // Fetch bookings from Firestore
+  const fetchFirestoreBookings = async (): Promise<Booking[]> => {
+    try {
+      const q = query(
+        collection(db, 'bookings'),
+        where('userId', '==', user?.uid)
+      );
+
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data() as Booking,
+        isLocal: false
+      }));
+    } catch (error) {
+      console.error('Error fetching Firestore bookings:', error);
+      return [];
+    }
+  };
+
+  // Fetch bookings from local storage
+  const fetchLocalBookings = async (): Promise<Booking[]> => {
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const bookingKeys = keys.filter(key => key.startsWith('booking_'));
+      
+      if (bookingKeys.length === 0) return [];
+      
+      console.log(`Found ${bookingKeys.length} local bookings in AsyncStorage`);
+      
+      const localBookingsData = await AsyncStorage.multiGet(bookingKeys);
+      return localBookingsData
+        .map(([key, value]) => {
+          if (!value) return null;
+          
+          try {
+            const booking = JSON.parse(value);
+            return {
+              ...booking,
+              id: key,
+              isLocal: true,
+              status: 'pending sync', // Always show local bookings as pending sync
+              // The key difference - we keep these bookings permanently marked as local
+              // until we get positive confirmation they're in Firestore
+            };
+          } catch (parseError) {
+            console.error(`Error parsing booking ${key}:`, parseError);
+            return null;
+          }
+        })
+        .filter(booking => booking && booking.userId === user?.uid);
+    } catch (error) {
+      console.error('Error fetching local bookings:', error);
+      return [];
+    }
+  };
+
+  // Merge and deduplicate bookings by reference number
+  const mergeAndDeduplicateBookings = (firestoreBookings: Booking[], localBookings: Booking[]): Booking[] => {
+    const bookingMap = new Map();
+
+    // Add all Firestore bookings to the map
+    firestoreBookings.forEach(booking => {
+      if (booking.reference) {
+        bookingMap.set(booking.reference, booking);
+      } else {
+        bookingMap.set(booking.id, booking);
+      }
+    });
+
+    // Only add local bookings if they don't exist in Firestore
+    localBookings.forEach(booking => {
+      if (booking.reference && !bookingMap.has(booking.reference)) {
+        bookingMap.set(booking.reference, booking);
+      }
+    });
+
+    // Convert map back to array and sort
+    const allBookings = Array.from(bookingMap.values());
+    allBookings.sort((a, b) => {
+      const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt);
+      const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt);
+      return dateB.getTime() - dateA.getTime(); // Sort by date, newest first
+    });
+
+    return allBookings;
+  };
+
+  // Refresh bookings data
+  const handleRefresh = () => {
+    setRefreshKey(prevKey => prevKey + 1);
+  };
 
   // Handle user logout
   const handleLogout = async () => {

@@ -15,15 +15,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, addDoc } from 'firebase/firestore';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import NetInfo from '@react-native-community/netinfo';
 
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
 import { Colors } from '../constants/Colors';
-import { withProtectedRoute } from '../hooks/withProtectedRoute';
-import { useAuth } from '../hooks/useAuth';
-import { getFirebaseFirestore } from '../config/firebase';
+import { withProtectedRoute } from '@/hooks/withProtectedRoute';
+import { useAuth } from '@/hooks/useAuth';
+import { 
+  getFirebaseFirestore, 
+  checkOnlineStatus, 
+  addToOfflineQueue, 
+  checkConnectionWithTimeout,
+  db 
+} from '@/config/firebase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
  * BookingScreen Component
@@ -56,10 +61,10 @@ function BookingScreen() {
   
   // Available add-ons with pricing and selection state
   const [addOns, setAddOns] = useState([
-    { id: 1, name: 'Biscuit Ride', price: 60, selected: false, image: require('../assets/images/biscuir.jpg') },
-    { id: 2, name: 'Wakeboard', price: 50, selected: false, image: require('../assets/images/wakeboard.webp') },
-    { id: 3, name: 'Water Skis', price: 50, selected: false, image: require('../assets/images/skis.jpg') },
-    { id: 4, name: 'Fishing Package', price: 60, selected: false, image: require('../assets/images/fishing.jpg') },
+    { id: 1, name: 'Biscuit Ride (2-4 Person)', price: 70, selected: false, image: require('../assets/images/biscuir.jpg') },
+    { id: 2, name: 'Wakeboard', price: 60, selected: false, image: require('../assets/images/wakeboard.webp') },
+    { id: 3, name: 'Water Skis', price: 60, selected: false, image: require('../assets/images/skis.jpg') },
+    { id: 4, name: 'Fishing Package', price: 70, selected: false, image: require('../assets/images/fishing.jpg') },
   ]);
   
   // State for confirmation modal visibility
@@ -67,20 +72,6 @@ function BookingScreen() {
   
   // State to store the generated booking reference number
   const [bookingReference, setBookingReference] = useState('');
-  
-  // State for loading indicator
-  const [loading, setLoading] = useState(false);
-
-  // State for network connectivity
-  const [isConnected, setIsConnected] = useState(true);
-
-  useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener(state => {
-      setIsConnected(state.isConnected);
-    });
-
-    return () => unsubscribe();
-  }, []);
   
   /**
    * Helper function to format date in a user-friendly way
@@ -170,11 +161,11 @@ function BookingScreen() {
     
     // Base price based on service
     if (selectedService === 'jetski') {
-      total += 110 * jetSkiCount; // $110 per jet ski for 30 minutes
+      total += 130 * jetSkiCount; // $130 per jet ski for 30 minutes (updated price)
     } else if (selectedService === 'aqualounge') {
-      total += 250; // $250 for 2-hour Aqua Lounge package
+      total += 300; // $300 for 2-hour Aqua Lounge package (updated price)
     } else if (selectedService === 'tours') {
-      total += 195; // $195 per hour for guided tours
+      total += 220; // $220 per hour for guided tours (updated price)
     }
     
     // Add-on costs
@@ -190,7 +181,6 @@ function BookingScreen() {
   /**
    * Handles booking confirmation
    * Validates required fields, generates booking reference, and shows confirmation modal
-   * Includes offline support and connection error handling
    */
   const handleConfirmBooking = async () => {
     console.log('handleConfirmBooking start');
@@ -209,9 +199,6 @@ function BookingScreen() {
     const ref = 'BK-' + Math.floor(100000 + Math.random() * 900000);
     setBookingReference(ref);
     
-    // Show loading indicator
-    setLoading(true);
-    
     try {
       // Create booking object with all relevant details
       const bookingData = {
@@ -229,82 +216,56 @@ function BookingScreen() {
         })),
         totalAmount: calculateTotal(),
         status: 'confirmed',
-        // Use a regular Date object instead of serverTimestamp for Expo Go compatibility
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
       };
       
-      console.log('Saving booking to Firestore:', bookingData);
-      const firestoreDb = await getFirebaseFirestore();
-      
-      if (isConnected) {
+      console.log('Preparing booking:', bookingData);
+
+      // Always store locally first to ensure we have a backup
+      await AsyncStorage.setItem(`booking_${ref}`, JSON.stringify(bookingData));
+      console.log('Booking saved to local storage');
+
+      // Try to save to Firestore, but don't wait too long
+      const saveToFirebase = async () => {
         try {
-          const bookingRef = await addDoc(collection(firestoreDb, 'bookings'), bookingData);
-          console.log('Booking saved with ID:', bookingRef.id);
-          
-          // Store locally in AsyncStorage as backup
-          try {
-            const existingBookingsJSON = await AsyncStorage.getItem('local_bookings');
-            const existingBookings = existingBookingsJSON ? JSON.parse(existingBookingsJSON) : [];
-            
-            // Add the new booking with its Firestore ID
-            existingBookings.push({
-              ...bookingData,
-              id: bookingRef.id,
-              syncedToFirestore: true
-            });
-            
-            await AsyncStorage.setItem('local_bookings', JSON.stringify(existingBookings));
-            console.log('Booking also saved to AsyncStorage');
-          } catch (asyncError) {
-            console.warn('Failed to save booking to AsyncStorage:', asyncError);
-          }
-          
-          // Show confirmation modal
-          setShowConfirmation(true);
-        } catch (firestoreError) {
-          console.error('Firestore error:', firestoreError);
-          Alert.alert(
-            'Booking Error', 
-            'There was a problem saving your booking. Please try again.'
-          );
-        }
-      } else {
-        // Handle offline case - store locally only
-        try {
-          const existingBookingsJSON = await AsyncStorage.getItem('local_bookings');
-          const existingBookings = existingBookingsJSON ? JSON.parse(existingBookingsJSON) : [];
-          
-          // Add the new booking (without Firestore ID)
-          existingBookings.push({
-            ...bookingData,
-            id: `local-${Date.now()}`,
-            syncedToFirestore: false
+          // Try to save to Firestore with timeout
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Firestore operation timed out')), 5000);
           });
           
-          await AsyncStorage.setItem('local_bookings', JSON.stringify(existingBookings));
-          console.log('Booking saved to AsyncStorage (offline mode)');
+          const savePromise = addDoc(collection(db, 'bookings'), bookingData);
           
-          Alert.alert(
-            'Booking Saved Locally', 
-            'Your booking was saved to your device. It will be synchronized with our servers when your connection is restored.',
-            [{ text: 'OK', onPress: () => setShowConfirmation(true) }]
-          );
-        } catch (asyncError) {
-          console.error('Failed to save booking locally:', asyncError);
-          Alert.alert(
-            'Booking Error', 
-            'There was a problem saving your booking. Please check your internet connection and try again.'
-          );
+          // Race between the timeout and the save operation
+          const bookingRef = await Promise.race([savePromise, timeoutPromise]);
+          console.log('Booking saved to Firestore with ID:', bookingRef.id);
+          return true;
+        } catch (firestoreError) {
+          console.error('Firestore error:', firestoreError);
+          // Add to offline queue for later sync
+          addToOfflineQueue({
+            type: 'booking',
+            data: bookingData
+          });
+          return false;
         }
-      }
+      };
+
+      // Try to save to Firestore but don't block the UI
+      saveToFirebase().then(success => {
+        if (!success) {
+          console.log('Failed to save to Firestore, but booking is stored locally');
+        }
+      });
+      
+      // Show confirmation immediately after local save, don't wait for Firestore
+      setShowConfirmation(true);
+      
     } catch (error) {
       console.error('Error in booking process:', error);
       Alert.alert(
-        'Booking Error', 
-        'There was an unexpected problem with your booking. Please try again.'
+        'Booking Error',
+        'There was a problem with your booking. Please try again later.'
       );
-    } finally {
-      setLoading(false);
     }
   };
   
@@ -516,20 +477,11 @@ function BookingScreen() {
         
         {/* Confirm Booking Button */}
         <TouchableOpacity
-          style={[
-            styles.confirmButton, 
-            !selectedService ? styles.confirmButtonDisabled : styles.confirmButtonActive
-          ]}
-          onPress={() => { 
-            console.log('Confirm button pressed'); 
-            handleConfirmBooking(); 
-          }}
-          disabled={!selectedService}
+          style={[styles.confirmButton, !selectedService && { opacity: 0.5 }]}
+          onPress={() => { console.log('Confirm button pressed'); handleConfirmBooking(); }}
           activeOpacity={0.7}
         >
-          <ThemedText style={styles.confirmButtonText}>
-            Confirm Booking
-          </ThemedText>
+          <ThemedText style={styles.confirmButtonText}>Confirm Booking</ThemedText>
         </TouchableOpacity>
       </ScrollView>
       
@@ -664,15 +616,15 @@ function BookingScreen() {
               </ThemedText>
             </View>
             
-            {/* Done button - closes modal and navigates to home screen */}
+            {/* Done button - closes modal and navigates to account screen */}
             <TouchableOpacity
               style={styles.doneButton}
               onPress={() => {
                 setShowConfirmation(false);
-                router.replace('/');
+                router.replace('/account'); // Navigate to account page instead of home
               }}
             >
-              <ThemedText style={styles.doneButtonText}>Done</ThemedText>
+              <ThemedText style={styles.doneButtonText}>View My Bookings</ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -907,16 +859,11 @@ const styles = StyleSheet.create({
     fontSize: 18, // Increased from default to 18
   },
   confirmButton: {
+    backgroundColor: Colors.light.palette.secondary.main,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
     marginVertical: 16,
-  },
-  confirmButtonActive: {
-    backgroundColor: '#21655A', // Using a direct color instead of Colors.light.palette.secondary.main
-  },
-  confirmButtonDisabled: {
-    backgroundColor: '#93beab', // Using a lighter, direct color value
   },
   confirmButtonText: {
     color: Colors.light.palette.secondary.contrast,
