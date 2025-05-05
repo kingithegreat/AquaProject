@@ -91,27 +91,59 @@ export default function AboutUsScreen() {
   const services: Service[] = [
     { 
       id: 1,
-      name: 'Jet Ski Rental', 
-      description: 'Experience the thrill of riding our premium jet skis on Lake Rotorua. Suitable for beginners and experienced riders.', 
-      image: require('../assets/images/skis.jpg'),
-      price: 'From $89/hour',
-      duration: '1-4 hours'
+      name: 'Jet Skis', 
+      description: 'Experience the freedom and exhilaration of riding our brand-new luxurious Sea-Doo GTI 130 models on the beautiful blue waters of Mount Maunganui. Perfect for both beginners and experienced riders, our jet skis are fully kitted to offer the most unique and exciting water experiences in the Bay! Our professional A-Team ensures your safety on the water at all times.', 
+      image: require('../assets/images/Jetski-image.webp'),
+      price: 'From $130/30 minutes',
+      duration: '30 minutes - 2 hours'
     },
     { 
       id: 2, 
-      name: 'Water Skiing', 
-      description: 'Get pulled behind our specially designed boats for an exciting water skiing experience. Instruction available for beginners.', 
-      image: require('../assets/images/fishing.jpg'),
-      price: 'From $95/hour',
-      duration: '1-2 hours'
+      name: 'Aqua Lounge', 
+      description: 'Bring your family and friends and let Aqua 360° take care of the rest. Our premium floating Aqua Lounge offers a unique way to enjoy the waters of Mount Maunganui with comfortable seating, space to relax, and the perfect platform for water activities. Ideal for group gatherings, family outings, or creating unforgettable memories with friends on the water.', 
+      image: require('../assets/images/Aqua-lounge.webp'),
+      price: 'From $300/2 hours',
+      duration: '2-4 hours'
     },
     { 
       id: 3, 
-      name: 'Guided Fishing', 
-      description: 'Join our local guides for a productive day fishing on the lake. All equipment and bait provided.', 
+      name: 'Guided Tours', 
+      description: 'Discover some of Tauranga\'s most hidden gems lying in our backyard! Our guided jet ski tours take you to explore the stunning Mount Maunganui coastline with experienced guides who know all the best spots. Cruise and explore the big beautiful blue backyard of Mount Maunganui while learning about the local area. Perfect for adventure seekers who want to discover new perspectives of this beautiful region.', 
+      image: require('../assets/images/tours2.png'),
+      price: 'From $220/hour',
+      duration: '1-3 hours'
+    },
+    { 
+      id: 4,
+      name: 'Biscuit Ride (2-4 Person)', 
+      description: 'Hold on tight for an exhilarating ride on our 2 to 4 person biscuit! Feel the excitement as you get pulled behind our powerful boats on this inflatable adventure. Our customers rave about this experience - "I have never been on a biscuit before but me and my daughter were so excited, the experience was amazing. I enjoyed every moment on the biscuit!" A favorite among families and guaranteed 100% fun!', 
+      image: require('../assets/images/biscuir.jpg'),
+      price: '$70/session',
+      duration: '20-30 minutes'
+    },
+    { 
+      id: 5, 
+      name: 'Wakeboard', 
+      description: 'Experience heart-pumping action on our wakeboarding adventures! Book your jet ski vacation with this exciting watersport accessory. Whether you\'re a beginner wanting to learn or an experienced rider looking to perfect your technique, our professional equipment and optional instruction create the perfect environment for an unforgettable wakeboarding session on the beautiful waters of Mount Maunganui.', 
+      image: require('../assets/images/wakeboard.webp'),
+      price: '$60/session',
+      duration: '30-45 minutes'
+    },
+    { 
+      id: 6, 
+      name: 'Water Skis', 
+      description: 'Enjoy the classic water sport of skiing across the beautiful waters of Mount Maunganui. Part of our popular watersports accessories that accompany your jet ski hire, water skiing offers an exciting way to experience the bay. We provide quality water skis and optional instruction for beginners. Feel the exhilaration as you glide across the water\'s surface with the stunning Mount landscape as your backdrop.', 
+      image: require('../assets/images/skis.jpg'),
+      price: '$60/session',
+      duration: '30-45 minutes'
+    },
+    { 
+      id: 7, 
+      name: 'Fishing Package', 
+      description: 'Don\'t let this one get away! Choose your own fishing adventure today with our specialized Jet Ski Fishing packages. Cruise the waters and catch a big one on a jet ski fishing adventure! Our packages include all necessary equipment and guidance on the best fishing spots in the bay. Perfect for fishing enthusiasts looking for a unique way to enjoy their favorite hobby in the beautiful waters of Mount Maunganui.', 
       image: require('../assets/images/fishing.jpg'),
-      price: 'From $150/half-day',
-      duration: '4-8 hours'
+      price: '$70/package',
+      duration: '2-4 hours'
     },
   ];
 
