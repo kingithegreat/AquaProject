@@ -440,9 +440,12 @@ const styles = StyleSheet.create({
     resizeMode: 'cover', // Move resizeMode here from the style
   },
   aboutUsTextContainer: {
-    paddingVertical: 10,
+    paddingVertical: 14,  // Increased from 10 to give more vertical space
     paddingHorizontal: 30,
     borderRadius: 15,
+    minHeight: 60,  // Added minimum height to ensure text has enough space
+    justifyContent: 'center',  // Center text vertically
+    alignItems: 'center',  // Center text horizontally
   },
   aboutUsButtonText: {
     color: '#ffffff',
@@ -451,6 +454,9 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
+    lineHeight: 36,  // Added line height to ensure proper text rendering
+    includeFontPadding: false,  // Prevents Android from cutting off top of text
+    textAlignVertical: 'center',  // Ensures text is centered vertically (Android)
   },
   // New styles for action button layout
   actionButtonsWrapper: {

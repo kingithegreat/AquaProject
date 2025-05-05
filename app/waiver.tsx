@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   titleContainer: {
-    paddingVertical: 12,
+    paddingVertical: 15, // Increased from 12 to 15
     paddingHorizontal: 24,
     borderRadius: 16,
     alignSelf: 'center',
@@ -188,15 +188,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
+    minHeight: 65, // Added minimum height
+    justifyContent: 'center', // Center text vertically
+    alignItems: 'center', // Center text horizontally
   },
   title: {
-    fontSize: 28, // Increased from 24 to 28
-    fontWeight: '700', // Changed from 'bold' to '700' for consistency and better weight
+    fontSize: 28,
+    fontWeight: '700',
     textAlign: 'center',
-    color: '#005662', // Added specific color for better contrast against the glass background
+    color: '#005662',
     textShadowColor: 'rgba(255, 255, 255, 0.8)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
+    lineHeight: 34, // Added line height
+    includeFontPadding: false, // Prevents Android from cutting off top of text
+    textAlignVertical: 'center', // Ensures text is centered vertically (Android)
   },
   waiverContainer: {
     width: '100%',

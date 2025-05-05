@@ -158,6 +158,7 @@ export default function AboutUsScreen() {
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={true}
       >
+        {/* Our Story Section */}
         <ThemedView style={styles.contentBox}>
           <ThemedText style={styles.sectionTitle}>Our Story</ThemedText>
           <ThemedText style={styles.paragraph}>
@@ -171,6 +172,7 @@ export default function AboutUsScreen() {
           </ThemedText>
         </ThemedView>
 
+        {/* Our Services Section */}
         <ThemedView style={styles.contentBox}>
           <ThemedText style={styles.sectionTitle}>Our Services</ThemedText>
           <ThemedText style={styles.paragraph}>
@@ -181,13 +183,17 @@ export default function AboutUsScreen() {
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.servicesContainer}
+            decelerationRate="fast"
+            snapToInterval={236} // 220 width + 16 margin
+            snapToAlignment="start"
+            pagingEnabled={false}
           >
             {services.map((service) => (
               <TouchableOpacity 
                 key={service.id}
                 style={styles.serviceCard}
                 onPress={() => handleServicePress(service)}
-                activeOpacity={0.9}
+                activeOpacity={0.8}
               >
                 <Image source={service.image} style={styles.serviceImage} />
                 <View style={styles.serviceTextContainer}>
@@ -260,6 +266,7 @@ export default function AboutUsScreen() {
           </TouchableOpacity>
         </ThemedView>
 
+        {/* Contact Us Section */}
         <ThemedView style={styles.contentBox}>
           <ThemedText style={styles.sectionTitle}>Contact Us</ThemedText>
           
@@ -279,6 +286,7 @@ export default function AboutUsScreen() {
           </View>
         </ThemedView>
 
+        {/* Footer with proper spacing */}
         <View style={styles.footerContainer}>
           <ThemedText style={styles.footerText}>© 2025 Aqua 360° Ltd. All rights reserved.</ThemedText>
         </View>
@@ -461,12 +469,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     paddingHorizontal: 24,
+    minWidth: 200, // Add minimum width to prevent squashing
+    alignSelf: 'center', // Center the button
   },
   reviewsButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
     marginRight: 8,
+    textAlign: 'center', // Ensure text is centered
   },
 
   // Contact Section
@@ -552,21 +563,30 @@ const styles = StyleSheet.create({
     margin: 16,
     borderRadius: 8,
     alignItems: 'center',
+    minWidth: 150, // Ensure minimum width
+    alignSelf: 'center', // Center the button
+    width: '80%', // Set width to a percentage of the container
   },
   bookButtonText: {
     color: '#ffffff',
     fontSize: 18,
     fontWeight: '600',
+    textAlign: 'center', // Ensure text is centered
   },
 
   // Footer
   footerContainer: {
-    marginTop: 8,
-    marginBottom: 24,
+    marginTop: 24,
+    marginBottom: 32,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     alignItems: 'center',
+    width: '100%',
   },
   footerText: {
     fontSize: 14,
-    color: '#999',
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
