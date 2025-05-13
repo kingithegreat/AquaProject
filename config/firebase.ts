@@ -3,7 +3,7 @@ import 'react-native-url-polyfill/auto';
 import 'react-native-get-random-values';
 
 import { initializeApp } from 'firebase/app';
-import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import { getAuth } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getFirestore, collection, addDoc, getDocs, query, where, enableIndexedDbPersistence } from 'firebase/firestore';
 import NetInfo from '@react-native-community/netinfo';
@@ -29,10 +29,8 @@ try {
   throw new Error("Firebase could not be initialized");
 }
 
-// Initialize Auth with persistent storage for React Native
-const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage)
-});
+// Initialize Firebase Auth
+const auth = getAuth(app);
 
 // Initialize Firestore with simpler configuration for Expo Go
 const db = getFirestore(app);
@@ -40,7 +38,7 @@ const db = getFirestore(app);
 // Set up network monitoring
 let isConnected = true;
 let networkMonitoringSetup = false;
-let offlineOperationsQueue = [];
+let offlineOperationsQueue: any[] = [];
 
 // Set up network monitoring
 const setupNetworkMonitoring = () => {
@@ -77,9 +75,8 @@ const processOfflineQueue = async () => {
   // Create a copy and clear the original to avoid double-processing
   const operations = [...offlineOperationsQueue];
   offlineOperationsQueue = [];
-  
-  // Process operations in sequential order with delay to avoid errors
-  for (const operation of operations) {
+    // Process operations in sequential order with delay to avoid errors
+  for (const operation: any of operations) {
     try {
       // Wait between operations
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -98,7 +95,7 @@ const processOfflineQueue = async () => {
 };
 
 // Process an offline booking with error handling
-const processOfflineBooking = async (bookingData) => {
+const processOfflineBooking = async (bookingData: any) => {
   try {
     // Check if the booking already exists in Firestore
     const existingBookings = await getDocs(

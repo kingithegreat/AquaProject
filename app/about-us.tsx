@@ -158,17 +158,16 @@ export default function AboutUsScreen() {
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={true}
       >
-        {/* Our Story Section */}
-        <ThemedView style={styles.contentBox}>
+        {/* Our Story Section */}        <ThemedView style={styles.contentBox}>
           <ThemedText style={styles.sectionTitle}>Our Story</ThemedText>
           <ThemedText style={styles.paragraph}>
-            Founded in 2023 with a passion for watersports, Aqua 360° has quickly established itself as Rotorua's premier destination for water activities. 
-            Our mission is to provide accessible, safe, and unforgettable aquatic experiences for visitors and locals alike.
+            At AQUA 360°, we take great pride in being a family-owned business dedicated to offering thrilling jet ski hire in the stunning Bay of Plenty, where adventure meets breathtaking scenery.
           </ThemedText>
           <ThemedText style={styles.paragraph}>
-            Located on the picturesque shores of Lake Rotorua, we offer a wide range of services including jet ski rentals, 
-            water skiing, wake boarding, guided fishing trips, and boat tours. Our experienced staff are dedicated to 
-            ensuring your safety while helping you create lasting memories on the water.
+            Bring the family! Bring your mates! New Zealand's big blue backyard is ready to carry you on your epic jet ski holiday adventure. Here at Aqua 360°, we focus on the Jet Ski hire & accessories logistics so you can focus on the fun.
+          </ThemedText>
+          <ThemedText style={styles.paragraph}>
+            Do it in style on our brand-new luxurious Sea-Doo GTI 130 models, fully kitted to offer the most unique and exciting water experiences in the Bay! Feel the freedom and extreme exhilaration that Aqua 360° provides while our A-Team reassures you and your safety on the water.
           </ThemedText>
         </ThemedView>
 
@@ -210,23 +209,35 @@ export default function AboutUsScreen() {
             <ThemedText style={styles.sectionTitle}>Operating Hours</ThemedText>
             <Ionicons name="time-outline" size={24} color="#21655A" />
           </View>
-          
-          <View style={styles.hoursContainer}>
+            <View style={styles.hoursContainer}>
+            <ThemedText style={styles.hoursSubheading}>Seasonal Hours:</ThemedText>
             <View style={styles.hoursRow}>
-              <ThemedText style={styles.hoursDay}>Monday - Friday</ThemedText>
-              <ThemedText style={styles.hoursTime}>9:00 AM - 6:00 PM</ThemedText>
+              <ThemedText style={styles.hoursDay}>April to August</ThemedText>
+              <ThemedText style={styles.hoursTime}>Bookings only</ThemedText>
             </View>
             <View style={styles.hoursRow}>
-              <ThemedText style={styles.hoursDay}>Saturday</ThemedText>
-              <ThemedText style={styles.hoursTime}>8:00 AM - 7:00 PM</ThemedText>
+              <ThemedText style={styles.hoursDay}>Sept to December</ThemedText>
+              <ThemedText style={styles.hoursTime}>Tue-Fri: Bookings only</ThemedText>
+            </View>
+            <View style={[styles.hoursRow, styles.indentedRow]}>
+              <ThemedText style={styles.hoursDay}>Sat-Sun:</ThemedText>
+              <ThemedText style={styles.hoursTime}>Open on-site at Pilot Bay Beach</ThemedText>
             </View>
             <View style={styles.hoursRow}>
-              <ThemedText style={styles.hoursDay}>Sunday</ThemedText>
-              <ThemedText style={styles.hoursTime}>10:00 AM - 5:00 PM</ThemedText>
+              <ThemedText style={styles.hoursDay}>Jan to March</ThemedText>
+              <ThemedText style={styles.hoursTime}>Tue-Thu: Bookings only</ThemedText>
+            </View>
+            <View style={[styles.hoursRow, styles.indentedRow]}>
+              <ThemedText style={styles.hoursDay}>Fri-Sun:</ThemedText>
+              <ThemedText style={styles.hoursTime}>Open on-site at Pilot Bay Beach</ThemedText>
+            </View>
+            <View style={styles.hoursRow}>
+              <ThemedText style={styles.hoursDay}>Dec 19 - Jan 29</ThemedText>
+              <ThemedText style={styles.hoursTime}>Open daily at Pilot Bay Beach (10am till late)</ThemedText>
             </View>
             <View style={styles.hoursNote}>
               <Ionicons name="information-circle-outline" size={18} color="#21655A" />
-              <ThemedText style={styles.noteText}>Hours may vary during holidays & peak season</ThemedText>
+              <ThemedText style={styles.noteText}>Follow our socials for weather updates & opening times</ThemedText>
             </View>
           </View>
         </ThemedView>
@@ -269,26 +280,24 @@ export default function AboutUsScreen() {
         {/* Contact Us Section */}
         <ThemedView style={styles.contentBox}>
           <ThemedText style={styles.sectionTitle}>Contact Us</ThemedText>
-          
-          <View style={styles.contactInfo}>
+            <View style={styles.contactInfo}>
             <View style={styles.contactRow}>
               <Ionicons name="location-outline" size={22} color="#21655A" />
-              <ThemedText style={styles.contactText}>123 Lake Front Road, Rotorua, New Zealand</ThemedText>
+              <ThemedText style={styles.contactText}>Pilot Bay (Mount End) Beach, Mount Maunganui</ThemedText>
             </View>
             <View style={styles.contactRow}>
               <Ionicons name="call-outline" size={22} color="#21655A" />
-              <ThemedText style={styles.contactText}>+64 7 123 4567</ThemedText>
+              <ThemedText style={styles.contactText}>021 2782 360</ThemedText>
             </View>
             <View style={styles.contactRow}>
               <Ionicons name="mail-outline" size={22} color="#21655A" />
-              <ThemedText style={styles.contactText}>info@aqua360.co.nz</ThemedText>
-            </View>
-          </View>
+              <ThemedText style={styles.contactText}>admin@aqua360.co.nz</ThemedText>
+            </View>          </View>
         </ThemedView>
-
+        
         {/* Footer with proper spacing */}
         <View style={styles.footerContainer}>
-          <ThemedText style={styles.footerText}>© 2025 Aqua 360° Ltd. All rights reserved.</ThemedText>
+          <ThemedText style={styles.footerText}>© {new Date().getFullYear()} Aqua 360°. All rights reserved.</ThemedText>
         </View>
       </ScrollView>
 
@@ -573,7 +582,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center', // Ensure text is centered
   },
-
   // Footer
   footerContainer: {
     marginTop: 24,
@@ -588,5 +596,21 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  
+  // Added styles for new hours format
+  hoursSubheading: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#21655A',
+    marginBottom: 8,
+  },
+  indentedRow: {
+    paddingLeft: 20,
+  },
+  qualmarkLogo: {
+    height: 50,
+    width: 120,
+    marginTop: 16,
   },
 });
