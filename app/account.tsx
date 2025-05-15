@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, View, Image, Dimensions, Alert } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '@/config/firebase';
+import { db, syncOfflineData } from '@/config/firebase';
 import { format } from 'date-fns';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -13,7 +14,7 @@ import withProtectedRoute from '@/hooks/withProtectedRoute';
 import { Colors } from '@/constants/Colors';
 
 // Define Booking type for proper state typing
-type Booking = {
+interface Booking {
   id: string;
   reference?: string;
   createdAt: { toDate?: () => Date } | Date | string;
@@ -26,43 +27,60 @@ type Booking = {
   date?: string;
   time?: string;
   addOns?: Array<{ id: number, name: string, price: number }>;
-};
+  // Additional properties for enhanced offline support
+  syncing?: boolean;
+  source?: 'local' | 'firestore';
+  localVersion?: any; // To prevent recursive type definition
+  synced?: boolean;
+  userId?: string;
+}
 
 function AccountPage() {
   const { user, logout } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0); // Used to force re-render
-
-  // Fetch both local and remote bookings
+  // Fetch both local and remote bookings and trigger sync if needed
   useEffect(() => {
     const fetchAllBookings = async () => {
       if (!user || !user.uid) return;
 
       try {
         setLoading(true);
+          // Try to sync any offline data first
+        try {
+          const didSync = await syncOfflineData();
+          if (didSync) {
+            console.log('Offline data synced on account page load');
+          }
+        } catch (syncError) {
+          console.error('Error syncing offline data:', syncError);
+          // Continue loading bookings even if sync fails
+        }
 
-        // Fetch both local and remote bookings in parallel
-        const [firestoreBookings, localBookings] = await Promise.all([
-          fetchFirestoreBookings(),
-          fetchLocalBookings()
-        ]);
+        // Fetch both local and remote bookings in parallel with a small delay
+        // after sync attempt to ensure we get the latest data
+        setTimeout(async () => {
+          const [firestoreBookings, localBookings] = await Promise.all([
+            fetchFirestoreBookings(),
+            fetchLocalBookings()
+          ]);
 
-        // Merge and deduplicate bookings
-        const mergedBookings = mergeAndDeduplicateBookings(firestoreBookings, localBookings);
-        setBookings(mergedBookings);
+          // Merge and deduplicate bookings
+          const mergedBookings = mergeAndDeduplicateBookings(firestoreBookings, localBookings);
+          setBookings(mergedBookings);
+          setLoading(false);
+        }, 500);
       } catch (error) {
         console.error('Error fetching bookings:', error);
         Alert.alert('Error', 'Could not load all your bookings. Please try again later.');
-      } finally {
         setLoading(false);
       }
     };
 
     fetchAllBookings();
   }, [user, refreshKey]);
-
-  // Fetch bookings from Firestore
+  // Fetch bookings from Firestore with improved data mapping
   const fetchFirestoreBookings = async (): Promise<Booking[]> => {
     try {
       const q = query(
@@ -71,41 +89,67 @@ function AccountPage() {
       );
 
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data() as Booking,
-        isLocal: false
-      }));
+      return querySnapshot.docs.map(doc => {
+        const data = doc.data() as Omit<Booking, 'id'>;
+        return {
+          ...data,
+          id: doc.id,
+          isLocal: false,
+          source: 'firestore' as 'firestore'
+        };
+      });
     } catch (error) {
       console.error('Error fetching Firestore bookings:', error);
       return [];
     }
   };
-
-  // Fetch bookings from local storage
+  // Fetch bookings from local storage with improved error handling and data validation
   const fetchLocalBookings = async (): Promise<Booking[]> => {
     try {
       const keys = await AsyncStorage.getAllKeys();
       const bookingKeys = keys.filter(key => key.startsWith('booking_'));
       
-      if (bookingKeys.length === 0) return [];
+      if (bookingKeys.length === 0) {
+        console.log('No local bookings found in AsyncStorage');
+        return [];
+      }
       
       console.log(`Found ${bookingKeys.length} local bookings in AsyncStorage`);
       
       const localBookingsData = await AsyncStorage.multiGet(bookingKeys);
-      return localBookingsData
+      const validBookings = localBookingsData
         .map(([key, value]) => {
-          if (!value) return null;
+          if (!value) {
+            console.log(`Empty booking value for key: ${key}`);
+            return null;
+          }
           
           try {
             const booking = JSON.parse(value);
+            
+            // Validate booking data
+            if (!booking.reference) {
+              console.warn(`Booking without reference found: ${key}`);
+              return null;
+            }
+            
+            // Fix common data inconsistencies
+            if (typeof booking.createdAt === 'string') {
+              // Convert string dates to Date objects
+              try {
+                booking.createdAt = new Date(booking.createdAt);
+              } catch (dateError) {
+                console.warn(`Invalid date format in booking ${booking.reference}:`, dateError);
+                booking.createdAt = new Date(); // Fallback to current date
+              }
+            }
+            
             return {
               ...booking,
-              id: key,
+              id: key.replace('booking_', ''),
               isLocal: true,
-              status: 'pending sync', // Always show local bookings as pending sync
-              // The key difference - we keep these bookings permanently marked as local
-              // until we get positive confirmation they're in Firestore
+              status: booking.status || 'pending sync', // Use existing status or default
+              syncing: true // Flag to indicate this booking may need syncing
             };
           } catch (parseError) {
             console.error(`Error parsing booking ${key}:`, parseError);
@@ -113,39 +157,96 @@ function AccountPage() {
           }
         })
         .filter(booking => booking && booking.userId === user?.uid);
+        
+      console.log(`Returning ${validBookings.length} valid local bookings`);
+      return validBookings;
     } catch (error) {
       console.error('Error fetching local bookings:', error);
       return [];
     }
   };
-
-  // Merge and deduplicate bookings by reference number
+  // Merge and deduplicate bookings by reference number with improved error handling
   const mergeAndDeduplicateBookings = (firestoreBookings: Booking[], localBookings: Booking[]): Booking[] => {
     const bookingMap = new Map();
 
+    console.log(`Merging ${firestoreBookings.length} Firestore bookings and ${localBookings.length} local bookings`);
+
     // Add all Firestore bookings to the map
     firestoreBookings.forEach(booking => {
-      if (booking.reference) {
-        bookingMap.set(booking.reference, booking);
-      } else {
-        bookingMap.set(booking.id, booking);
+      try {
+        if (booking.reference) {
+          bookingMap.set(booking.reference, {
+            ...booking,
+            source: 'firestore'
+          });
+        } else {
+          bookingMap.set(booking.id, {
+            ...booking,
+            source: 'firestore'
+          });
+        }
+      } catch (error) {
+        console.error('Error processing Firestore booking:', error);
       }
     });
 
-    // Only add local bookings if they don't exist in Firestore
+    // Process local bookings - prioritize Firestore versions but flag conflicts
     localBookings.forEach(booking => {
-      if (booking.reference && !bookingMap.has(booking.reference)) {
-        bookingMap.set(booking.reference, booking);
+      try {
+        if (!booking.reference) {
+          console.warn('Local booking has no reference number, skipping:', booking);
+          return;
+        }
+        
+        const existingBooking = bookingMap.get(booking.reference);
+        
+        if (!existingBooking) {
+          // This booking only exists locally
+          bookingMap.set(booking.reference, {
+            ...booking,
+            source: 'local'
+          });
+        } else if (booking.syncing) {
+          // Mark that this booking exists in both places for UI treatment
+          bookingMap.set(booking.reference, {
+            ...existingBooking,
+            localVersion: booking,
+            synced: true
+          });
+        }
+      } catch (error) {
+        console.error('Error processing local booking:', error);
       }
     });
 
-    // Convert map back to array and sort
+    // Convert map back to array and sort, with better error handling
     const allBookings = Array.from(bookingMap.values());
-    allBookings.sort((a, b) => {
-      const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt);
-      const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt);
-      return dateB.getTime() - dateA.getTime(); // Sort by date, newest first
-    });
+    
+    // Safe sort with error handling
+    try {
+      allBookings.sort((a, b) => {
+        try {
+          const getDateValue = (booking: any) => {
+            try {
+              if (booking.createdAt?.toDate) return booking.createdAt.toDate().getTime();
+              if (booking.createdAt instanceof Date) return booking.createdAt.getTime();
+              if (typeof booking.createdAt === 'string') return new Date(booking.createdAt).getTime();
+              return 0; // Default value if no valid date found
+            } catch (dateError) {
+              console.warn('Error processing date:', dateError);
+              return 0;
+            }
+          };
+          
+          return getDateValue(b) - getDateValue(a); // Sort by date, newest first
+        } catch (sortError) {
+          console.error('Error during sort comparison:', sortError);
+          return 0;
+        }
+      });
+    } catch (error) {
+      console.error('Error sorting bookings:', error);
+    }
 
     return allBookings;
   };
@@ -170,16 +271,36 @@ function AccountPage() {
   const handleNewBooking = () => {
     router.push('/booking');
   };
-
-  // Format timestamp to readable date and time
+  // Format timestamp to readable date and time with improved error handling
   const formatBookingDate = (timestamp: Booking['createdAt']): string => {
     try {
-      // Handle both Firestore Timestamp and regular Date objects
-      const date = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
+      // Handle different timestamp formats safely
+      let date: Date;
+      
+      if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp && typeof timestamp.toDate === 'function') {
+        // Firestore Timestamp object
+        date = timestamp.toDate();
+      } else if (timestamp instanceof Date) {
+        // JavaScript Date object
+        date = timestamp;
+      } else if (typeof timestamp === 'string') {
+        // ISO string date
+        date = new Date(timestamp);
+      } else {
+        // Fallback
+        console.warn('Unknown date format:', timestamp);
+        return 'Unknown date';
+      }
+      
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date value:', timestamp);
+        return 'Invalid date';
+      }
+      
       return format(date, 'PPP p'); // Format like "Apr 29, 2025, 2:30 PM"
     } catch (error) {
       console.error('Date formatting error:', error);
-      return 'Invalid date';
+      return 'Error formatting date';
     }
   };
 
@@ -233,22 +354,41 @@ function AccountPage() {
           
           {loading ? (
             <ActivityIndicator size="large" color="#21655A" style={styles.loader} />
-          ) : bookings.length > 0 ? (
-            bookings.map((booking, index) => (
-              <View key={booking.id} style={styles.bookingCard}>
+          ) : bookings.length > 0 ? (            bookings.map((booking, index) => (
+              <View key={booking.id || `booking-${index}`} style={[
+                styles.bookingCard,
+                booking.isLocal && styles.localBookingCard
+              ]}>
+                {booking.synced && (
+                  <View style={styles.syncBadge}>
+                    <Ionicons name="sync" size={14} color="#fff" />
+                    <ThemedText style={styles.syncText}>Synced</ThemedText>
+                  </View>
+                )}
+                
                 <View style={styles.bookingHeader}>
                   <ThemedText style={styles.bookingDate}>
                     {formatBookingDate(booking.createdAt)}
                   </ThemedText>
                   <View style={[
                     styles.statusBadge,
-                    { backgroundColor: booking.status === 'confirmed' ? '#2ecc71' : '#f39c12' }
+                    booking.isLocal ? 
+                      { backgroundColor: '#f39c12' } : // Local always shows as pending
+                      { backgroundColor: booking.status === 'confirmed' ? '#2ecc71' : '#f39c12' }
                   ]}>
                     <ThemedText style={styles.statusText}>
-                      {booking.status === 'confirmed' ? 'Confirmed' : 'Pending'}
+                      {booking.isLocal ? 'Pending Sync' : 
+                       booking.status === 'confirmed' ? 'Confirmed' : 'Pending'}
                     </ThemedText>
                   </View>
                 </View>
+                
+                {booking.reference && (
+                  <View style={styles.referenceRow}>
+                    <ThemedText style={styles.referenceLabel}>Ref #:</ThemedText>
+                    <ThemedText style={styles.referenceValue}>{booking.reference}</ThemedText>
+                  </View>
+                )}
                 
                 <View style={styles.bookingDetails}>
                   <View style={styles.detailRow}>
@@ -260,11 +400,11 @@ function AccountPage() {
                   </View>
                   <View style={styles.detailRow}>
                     <ThemedText style={styles.detailLabel}>Quantity:</ThemedText>
-                    <ThemedText style={styles.detailValue}>{booking.quantity}</ThemedText>
+                    <ThemedText style={styles.detailValue}>{booking.quantity || 1}</ThemedText>
                   </View>
                   <View style={styles.detailRow}>
                     <ThemedText style={styles.detailLabel}>Total:</ThemedText>
-                    <ThemedText style={styles.detailValue}>${booking.totalAmount}</ThemedText>
+                    <ThemedText style={styles.detailValue}>${booking.totalAmount || 0}</ThemedText>
                   </View>
                   {booking.notes && (
                     <View style={styles.notesContainer}>
@@ -273,6 +413,13 @@ function AccountPage() {
                     </View>
                   )}
                 </View>
+                
+                {booking.isLocal && (
+                  <View style={styles.localIndicator}>
+                    <Ionicons name="cloud-offline" size={16} color="#f39c12" />
+                    <ThemedText style={styles.localText}>Stored on device</ThemedText>
+                  </View>
+                )}
               </View>
             ))
           ) : (
@@ -390,8 +537,7 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: 30,
-  },
-  bookingCard: {
+  },  bookingCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
@@ -401,6 +547,59 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+    position: 'relative',
+  },
+  localBookingCard: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#f39c12',
+  },
+  syncBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#3498db',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  syncText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginLeft: 2,
+  },
+  referenceRow: {
+    flexDirection: 'row',
+    marginBottom: 8,
+    alignItems: 'center',
+  },
+  referenceLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666',
+    width: 50,
+  },
+  referenceValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666',
+  },
+  localIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    backgroundColor: 'rgba(243, 156, 18, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+  },
+  localText: {
+    fontSize: 12,
+    color: '#f39c12',
+    marginLeft: 4,
   },
   bookingHeader: {
     flexDirection: 'row',

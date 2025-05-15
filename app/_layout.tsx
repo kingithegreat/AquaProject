@@ -1,4 +1,4 @@
-// Add global polyfills for URL and crypto
+// Add global polyfills for URL and crypto - critical for Firebase in Expo Go
 import 'react-native-url-polyfill/auto';
 import 'react-native-get-random-values';
 
@@ -8,12 +8,17 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import 'react-native-reanimated';
-import { View, Text, ActivityIndicator, StyleSheet, LogBox } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, LogBox, Alert, Platform } from 'react-native';
+import Constants from 'expo-constants';
+import * as Updates from 'expo-updates';
+import NetInfo from '@react-native-community/netinfo';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { AuthProvider } from '@/hooks/useAuth';
+import { isRunningInExpoGo } from '@/config/firebase';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 // Ignore specific warnings that might cause issues
 LogBox.ignoreLogs([
@@ -31,12 +36,52 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
   const [isLoadingComplete, setLoadingComplete] = useState(false);
-  const [loadError, setLoadError] = useState<Error | null>(null);
+  const [loadError, setLoadError] = useState<Error | null>(null);  // Check for app updates when NOT running in development mode
+  const checkForUpdates = useCallback(async () => {
+    try {
+      if (!__DEV__ && Updates.channel !== 'development') {
+        console.log('Checking for updates...');
+        const update = await Updates.checkForUpdateAsync();
+        
+        if (update.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          Alert.alert(
+            "Update Available", 
+            "A new update is available. Restart the app to apply it.",
+            [
+              { text: "Later", style: "cancel" },
+              { text: "Restart Now", onPress: async () => await Updates.reloadAsync() }
+            ]
+          );
+        }
+      } else {
+        console.log('Update checking skipped in development mode');
+      }
+    } catch (error) {
+      // Safely catch and log errors to prevent app crashes
+      console.log('Error checking for updates (can be ignored in Expo Go):', error);
+    }
+  }, []);
+
+  // Handle network status for Expo Go environment
+  useEffect(() => {
+    const handleConnectivityChange = (state: any) => {
+      if (!state.isConnected && isRunningInExpoGo()) {
+        console.log('Network disconnected in Expo Go environment');
+      }
+    };
+
+    const unsubscribe = NetInfo.addEventListener(handleConnectivityChange);
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     async function prepare() {
       try {
-        // Pre-load fonts, make any API calls you need to do here
+        // Check for updates
+        await checkForUpdates();
+        
+        // Pre-load fonts and prepare app resources
         if (loaded && !error) {
           // If everything loaded properly, we can hide the splash screen
           await SplashScreen.hideAsync();
@@ -71,26 +116,27 @@ export default function RootLayout() {
     console.log('Continuing despite load error:', loadError);
     // We'll continue rendering the app despite the error
   }
-
   return (
-    <AuthProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="about-us" options={{ title: "About Us" }} />
-          <Stack.Screen name="ai-assist" options={{ title: "AI Assistant" }} />
-          <Stack.Screen name="aqua-lounge" options={{ title: "Aqua Lounge" }} />
-          <Stack.Screen name="booking" options={{ title: "Booking" }} />
-          <Stack.Screen name="customize" options={{ title: "Customize" }} />
-          <Stack.Screen name="login" options={{ title: "Login" }} />
-          <Stack.Screen name="signup" options={{ title: "Sign Up" }} />
-          <Stack.Screen name="account" options={{ title: "My Account" }} />
-          <Stack.Screen name="waiver" options={{ title: "Waiver" }} />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="about-us" options={{ title: "About Us" }} />
+            <Stack.Screen name="ai-assist" options={{ title: "AI Assistant" }} />
+            <Stack.Screen name="aqua-lounge" options={{ title: "Aqua Lounge" }} />
+            <Stack.Screen name="booking" options={{ title: "Booking" }} />
+            <Stack.Screen name="customize" options={{ title: "Customize" }} />
+            <Stack.Screen name="login" options={{ title: "Login" }} />
+            <Stack.Screen name="signup" options={{ title: "Sign Up" }} />
+            <Stack.Screen name="account" options={{ title: "My Account" }} />
+            <Stack.Screen name="waiver" options={{ title: "Waiver" }} />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

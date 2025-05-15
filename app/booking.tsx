@@ -223,26 +223,53 @@ function BookingScreen() {
 
       // Always store locally first to ensure we have a backup
       await AsyncStorage.setItem(`booking_${ref}`, JSON.stringify(bookingData));
-      console.log('Booking saved to local storage');
-
-      // Try to save to Firestore, but don't wait too long
-      const saveToFirebase = async () => {
+      console.log('Booking saved to local storage');      // First check if we're online to decide how to handle the booking
+      const checkConnection = async () => {
         try {
-          // Try to save to Firestore with timeout
+          const isOnline = await checkConnectionWithTimeout(3000); // Check with a timeout
+          return isOnline;
+        } catch (error) {
+          console.log('Network connection check failed:', error);
+          return false; // Assume offline if the check fails
+        }
+      };
+      
+      // Try to save to Firestore with better error handling
+      const saveToFirebase = async () => {
+        const isOnline = await checkConnection();
+        console.log('Network status check result:', isOnline ? 'online' : 'offline');
+        
+        if (!isOnline) {
+          console.log('Device is offline, saving to queue for later sync');
+          // Add directly to offline queue
+          await addToOfflineQueue({
+            type: 'booking',
+            data: bookingData
+          });
+          return false;
+        }
+        
+        try {
+          // Try to save to Firestore with timeout for better reliability
           const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Firestore operation timed out')), 5000);
+            setTimeout(() => reject(new Error('Firestore operation timed out')), 8000); // Increased timeout
           });
           
           const savePromise = addDoc(collection(db, 'bookings'), bookingData);
           
           // Race between the timeout and the save operation
-          const bookingRef = await Promise.race([savePromise, timeoutPromise]);
-          console.log('Booking saved to Firestore with ID:', bookingRef.id);
-          return true;
-        } catch (firestoreError) {
-          console.error('Firestore error:', firestoreError);
+          const result: any = await Promise.race([savePromise, timeoutPromise]);
+          
+          if (result && result.id) {
+            console.log('Booking saved to Firestore with ID:', result.id);
+            return true;
+          } else {
+            throw new Error('Invalid Firestore response');
+          }
+        } catch (firestoreError: any) {
+          console.error('Firestore error:', firestoreError.message || firestoreError);
           // Add to offline queue for later sync
-          addToOfflineQueue({
+          await addToOfflineQueue({
             type: 'booking',
             data: bookingData
           });

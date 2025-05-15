@@ -9,53 +9,128 @@ import { getFirestore, collection, addDoc, getDocs, query, where, enableIndexedD
 import NetInfo from '@react-native-community/netinfo';
 import { Platform } from 'react-native';
 
-// Your Firebase configuration
+// Your Firebase configuration from environment variables
+// This is safer for exposing code and better for different environments
 const firebaseConfig = {
-  apiKey: "AIzaSyDhrik544tBzrcVBgeQU3GMuNaDDB6Bxmw",
-  authDomain: "year2project-fa35b.firebaseapp.com",
-  projectId: "year2project-fa35b",
-  storageBucket: "year2project-fa35b",
-  messagingSenderId: "651046894087",
-  appId: "1:651046894087:web:da388903018665a45108a2",
-  measurementId: "G-SPM59SGPKE"
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || "AIzaSyDhrik544tBzrcVBgeQU3GMuNaDDB6Bxmw",
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || "year2project-fa35b.firebaseapp.com",
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || "year2project-fa35b",
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || "year2project-fa35b",
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "651046894087",
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || "1:651046894087:web:da388903018665a45108a2",
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-SPM59SGPKE"
 };
 
 // Initialize Firebase with error handling
 let app;
 try {
+  // Check if an app instance already exists to prevent duplicate app initialization
   app = initializeApp(firebaseConfig);
-} catch (error) {
-  console.error("Firebase initialization error:", error);
-  throw new Error("Firebase could not be initialized");
+  console.log("Firebase initialized successfully");
+} catch (error: any) {
+  if (error.code === 'app/duplicate-app') {
+    // App already exists, get the existing instance
+    console.warn("Firebase app already exists, using existing instance");
+    app = initializeApp(firebaseConfig, "aqua360-app");
+  } else {
+    console.error("Firebase initialization error:", error);
+    throw new Error("Firebase could not be initialized: " + error.message);
+  }
 }
 
 // Initialize Firebase Auth
 const auth = getAuth(app);
 
-// Initialize Firestore with simpler configuration for Expo Go
+// Initialize Firestore with better error handling for offline support
 const db = getFirestore(app);
+
+// Enable offline persistence for Firestore on web platforms
+if (Platform.OS === 'web') {
+  try {
+    enableIndexedDbPersistence(db)
+      .then(() => console.log("Offline persistence enabled for web"))
+      .catch((err: any) => {
+        console.warn("Failed to enable offline persistence:", err.code, err.message);
+      });
+  } catch (err: any) {
+    console.error("Error setting up IndexedDB persistence:", err);
+  }
+}
 
 // Set up network monitoring
 let isConnected = true;
 let networkMonitoringSetup = false;
-let offlineOperationsQueue: any[] = [];
+let offlineOperationsQueue: Array<{type: string; data: any; retryCount?: number}> = [];
 
-// Set up network monitoring
+// Store network state in AsyncStorage for persistence across app restarts
+const saveNetworkState = async (connected: boolean) => {
+  try {
+    await AsyncStorage.setItem('network_state', JSON.stringify({ isConnected: connected }));
+  } catch (error) {
+    console.error('Error saving network state:', error);
+  }
+};
+
+// Load network state from AsyncStorage on app start
+const loadNetworkState = async () => {
+  try {
+    const storedState = await AsyncStorage.getItem('network_state');
+    if (storedState) {
+      const { isConnected: storedIsConnected } = JSON.parse(storedState);
+      isConnected = storedIsConnected;
+      console.log('Loaded network state from storage:', isConnected ? 'online' : 'offline');
+    }
+  } catch (error) {
+    console.error('Error loading network state:', error);
+  }
+};
+
+// Set up network monitoring with better error handling and Expo Go compatibility
 const setupNetworkMonitoring = () => {
   if (networkMonitoringSetup) return;
   
   try {
-    NetInfo.addEventListener(state => {
+    // Load previously saved network state
+    loadNetworkState();
+    
+    // Start monitoring network changes with more robust logging for debugging
+    const unsubscribe = NetInfo.addEventListener(state => {
       const wasConnected = isConnected;
-      isConnected = !!state.isConnected;
-      console.log('Connection status:', isConnected ? 'online' : 'offline');
+      
+      // In Expo Go, sometimes the network state can be null or undefined
+      // Handle this gracefully to prevent app crashes
+      if (state === null || state === undefined) {
+        console.warn('Received null or undefined network state - assuming offline');
+        isConnected = false;
+      } else {
+        isConnected = !!state.isConnected;
+        
+        // Additional logging for debugging in Expo Go
+        if (__DEV__) {
+          console.log('Network details:', {
+            type: state.type,
+            isConnected: state.isConnected,
+            isInternetReachable: state.isInternetReachable,
+            details: Platform.OS === 'android' ? state.details : state.details
+          });
+        } else {
+          console.log('Connection status changed:', isConnected ? 'online' : 'offline');
+        }
+      }
+      
+      // Save this state for future app launches
+      saveNetworkState(isConnected);
       
       // If transitioning from offline to online, process queue
       if (!wasConnected && isConnected && offlineOperationsQueue.length > 0) {
         console.log(`Network reconnected. Processing ${offlineOperationsQueue.length} queued operations.`);
-        processOfflineQueue();
+        // Small delay to ensure connection is stable before processing
+        setTimeout(() => processOfflineQueue(), 1000);
       }
     });
+    
+    // Store unsubscribe function in case we need to clean up
+    (global as any).netInfoUnsubscribe = unsubscribe;
     
     networkMonitoringSetup = true;
   } catch (error) {
@@ -63,10 +138,27 @@ const setupNetworkMonitoring = () => {
   }
 };
 
-// Set up network monitoring immediately
-setupNetworkMonitoring();
+// Load any saved offline operations from AsyncStorage
+const loadOfflineOperations = async () => {
+  try {
+    const savedQueue = await AsyncStorage.getItem('offline_queue');
+    if (savedQueue) {
+      const operations = JSON.parse(savedQueue);
+      if (Array.isArray(operations) && operations.length > 0) {
+        offlineOperationsQueue = operations;
+        console.log(`Loaded ${operations.length} offline operations from storage`);
+      }
+    }
+  } catch (error) {
+    console.error('Error loading offline operations:', error);
+  }
+};
 
-// Process the offline queue
+// Set up network monitoring immediately and load offline operations
+setupNetworkMonitoring();
+loadOfflineOperations();
+
+// Process the offline queue with improved error handling and retries
 const processOfflineQueue = async () => {
   if (offlineOperationsQueue.length === 0) return;
 
@@ -75,42 +167,70 @@ const processOfflineQueue = async () => {
   // Create a copy and clear the original to avoid double-processing
   const operations = [...offlineOperationsQueue];
   offlineOperationsQueue = [];
-    // Process operations in sequential order with delay to avoid errors
-  for (const operation: any of operations) {
+  
+  // Track successful operations for reporting
+  let successCount = 0;
+  let failCount = 0;  // Process operations in sequential order with delay to avoid errors
+  for (const operation of operations) {
     try {
       // Wait between operations
       await new Promise(resolve => setTimeout(resolve, 500));
       
       if (operation.type === 'booking') {
         await processOfflineBooking(operation.data);
+        successCount++;
+      } else {
+        // Handle other operation types in the future if needed
+        console.warn('Unknown operation type:', operation.type);
+        failCount++;
       }
     } catch (error) {
       console.error('Error processing operation:', error);
-      // Re-add to queue for later retry
-      offlineOperationsQueue.push(operation);
+      // Re-add to queue for later retry with backoff
+      const op = operation as {type: string; data: any; retryCount?: number};
+      op.retryCount = (op.retryCount || 0) + 1;
+      if (op.retryCount < 3) { // Limit retries to prevent infinite loops
+        offlineOperationsQueue.push(op);
+      } else {
+        console.error('Operation failed after multiple retries:', op);
+        failCount++;
+      }
     }
   }
   
-  console.log(`Queue processing completed. ${offlineOperationsQueue.length} items remaining.`);
+  console.log(`Queue processing completed. Success: ${successCount}, Failed: ${failCount}, Remaining: ${offlineOperationsQueue.length}`);
+  
+  // Save queue state to AsyncStorage for persistence across app restarts
+  try {
+    await AsyncStorage.setItem('offline_queue', JSON.stringify(offlineOperationsQueue));
+  } catch (error) {
+    console.error('Error saving offline queue:', error);
+  }
 };
 
-// Process an offline booking with error handling
+// Process an offline booking with error handling and retry mechanism
 const processOfflineBooking = async (bookingData: any) => {
+  if (!bookingData || !bookingData.reference) {
+    console.error('Invalid booking data:', bookingData);
+    return;
+  }
+  
   try {
-    // Check if the booking already exists in Firestore
+    console.log(`Processing offline booking: ${bookingData.reference}`);
+    
+    // Check if the booking already exists in Firestore to prevent duplicates
     const existingBookings = await getDocs(
       query(collection(db, 'bookings'), where('reference', '==', bookingData.reference))
     );
     
     if (!existingBookings.empty) {
-      console.log(`Booking ${bookingData.reference} already exists in Firestore`);
+      console.log(`Booking ${bookingData.reference} already exists in Firestore, skipping upload`);
       // Only remove from AsyncStorage if we're certain it exists in Firestore
       await AsyncStorage.removeItem(`booking_${bookingData.reference}`);
       return;
     }
-    
-    // Try to save with timeout
-    const savePromise = new Promise(async (resolve, reject) => {
+      // Try to save with timeout for better error handling
+    const savePromise = new Promise<any>(async (resolve, reject) => {
       try {
         const docRef = await addDoc(collection(db, 'bookings'), bookingData);
         resolve(docRef);
@@ -120,7 +240,7 @@ const processOfflineBooking = async (bookingData: any) => {
     });
     
     // Set timeout to prevent hanging
-    const timeoutPromise = new Promise((_, reject) => {
+    const timeoutPromise = new Promise<any>((_, reject) => {
       setTimeout(() => reject(new Error('Firestore operation timed out')), 10000);
     });
     
@@ -171,23 +291,118 @@ const processOfflineBooking = async (bookingData: any) => {
   return true;
 };
 
+// Helper function to detect if we're running in Expo Go
+export const isRunningInExpoGo = (): boolean => {
+  try {
+    // Several indicators that suggest we're in Expo Go:
+    // 1. __DEV__ is true in Expo Go
+    // 2. When using Expo Go, certain native modules behave differently
+    return __DEV__ && !process.env.EXPO_PUBLIC_APP_ENV?.includes('production');
+  } catch (e) {
+    console.warn('Error checking Expo Go environment:', e);
+    return false; 
+  }
+};
+
 // Enhanced exports
 export { app, auth, db };
 
 // Helper functions
 export const checkOnlineStatus = () => isConnected;
 
-export const addToOfflineQueue = (operation) => {
-  offlineOperationsQueue.push(operation);
-  console.log(`Operation added to offline queue. Queue size: ${offlineOperationsQueue.length}`);
+// More reliable connection check with timeout
+export const checkConnectionWithTimeout = async (timeoutMs: number = 5000): Promise<boolean> => {
+  return new Promise(async (resolve) => {
+    // Set up timeout that will resolve with false
+    const timeout = setTimeout(() => {
+      console.log('Connection check timed out');
+      resolve(false);
+    }, timeoutMs);
+    
+    try {
+      // Get current connection state
+      const state = await NetInfo.fetch();
+      
+      // If we're definitely offline, no need to wait
+      if (!state.isConnected) {
+        clearTimeout(timeout);
+        resolve(false);
+        return;
+      }
+      
+      // Try to actually make a network request to verify connectivity
+      // This helps detect cases where the device thinks it's online but can't reach the server
+      try {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeoutMs - 500);
+        
+        // Use a lightweight fetch to Firebase or Google to check connectivity
+        const response = await fetch('https://www.googleapis.com/identitytoolkit/v3/relyingparty/getProjectConfig?key=' + 
+          firebaseConfig.apiKey, { 
+            method: 'GET',
+            signal: controller.signal
+          });
+        
+        clearTimeout(id);
+        clearTimeout(timeout);
+        resolve(response.ok);
+      } catch (error) {
+        console.log('Fetch check failed:', error);
+        clearTimeout(timeout);
+        resolve(false);
+      }
+    } catch (error) {
+      console.log('NetInfo fetch failed:', error);
+      clearTimeout(timeout);
+      resolve(false);
+    }
+  });
 };
 
-// Explicitly export the syncOfflineData function
-export const syncOfflineData = () => {
+export const addToOfflineQueue = async (operation: {type: string; data: any}) => {
+  offlineOperationsQueue.push(operation);
+  console.log(`Operation added to offline queue. Queue size: ${offlineOperationsQueue.length}`);
+  
+  // Save updated queue to AsyncStorage for persistence
+  try {
+    await AsyncStorage.setItem('offline_queue', JSON.stringify(offlineOperationsQueue));
+    console.log('Offline queue saved to storage');
+  } catch (error) {
+    console.error('Error saving offline queue to storage:', error);
+  }
+};
+
+// Explicitly export the syncOfflineData function with proper typing and better logging
+export const syncOfflineData = async (): Promise<boolean> => {
+  // First load any saved operations that might have been added while the app was closed
+  try {
+    const savedQueue = await AsyncStorage.getItem('offline_queue');
+    if (savedQueue) {
+      const operations = JSON.parse(savedQueue);
+      if (Array.isArray(operations)) {
+        // Add any operations that aren't already in the queue
+        for (const op of operations) {
+          const exists = offlineOperationsQueue.some(
+            existingOp => existingOp.type === op.type && 
+            existingOp.data?.reference === op.data?.reference
+          );
+          
+          if (!exists) {
+            offlineOperationsQueue.push(op);
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error loading saved offline operations:', error);
+  }
+  
   if (isConnected && offlineOperationsQueue.length > 0) {
+    console.log(`Syncing ${offlineOperationsQueue.length} offline operations`);
     processOfflineQueue();
     return true;
   }
+  
   return false;
 };
 
@@ -195,13 +410,16 @@ export const syncOfflineData = () => {
 export const getFirebaseAuth = async () => auth;
 export const getFirebaseFirestore = async () => db;
 
-// Try to enable offline persistence for better offline support
+// In development mode on emulators, offline persistence can cause issues
+// Only enable it for production or when not running in Expo Go
 try {
-  // Enable offline persistence with Firestore
-  if (Platform.OS !== 'web') {
+  // For Expo Go compatibility, we need to be more careful with offline persistence
+  // We'll disable offline persistence in development mode to be safe
+  if (Platform.OS !== 'web' && !__DEV__) {
+    // We're in production mode, safe to enable persistence
     enableIndexedDbPersistence(db)
-      .then(() => console.log('Offline persistence enabled successfully'))
-      .catch((err) => {
+      .then(() => console.log('Offline persistence enabled successfully for production'))
+      .catch((err: any) => {
         console.warn('Error enabling offline persistence:', err.code, err.message);
         if (err.code === 'failed-precondition') {
           console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
@@ -209,6 +427,8 @@ try {
           console.warn('The current browser does not support all features required for Firestore offline persistence.');
         }
       });
+  } else {
+    console.log('Offline persistence disabled in development mode for better Expo Go compatibility');
   }
 } catch (err) {
   console.warn('Error setting up offline persistence:', err);

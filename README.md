@@ -1,37 +1,130 @@
-# Welcome to your Expo app 👋
+# Aqua 360° 🌊
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Welcome to **Aqua 360°**, a water sports and recreation booking app built with React Native and Expo.
 
-## Get started
+![Aqua 360° Logo](assets/images/icon.png)
+
+## Features
+
+- **User Authentication**: Sign up, login, and account management
+- **Service Booking**: Book jet skis, tours, and the aqua lounge
+- **Offline Support**: Book services even without an internet connection
+- **Reviews System**: Leave and read reviews from other users
+- **Add-ons**: Customize your bookings with additional services
+
+## Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (v14 or newer)
+- [Expo CLI](https://docs.expo.dev/get-started/installation/)
+- [Expo Go](https://expo.dev/client) app on your iOS or Android device
+
+### Installation
 
 1. Install dependencies
 
-   ```bash
+   ```powershell
    npm install
+   # or if you prefer yarn
+   yarn install
    ```
 
-2. Start the app
+2. Set up environment variables
+   
+   The `.env` file contains important configuration values for Firebase and should be properly configured.
 
-   ```bash
-    npx expo start
+3. Run the compatibility check script
+
+   ```powershell
+   ./scripts/check-expo-compatibility.ps1
    ```
 
-In the output, you'll find options to open the app in a
+4. Start the app with optimized settings for Expo Go
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+   ```powershell
+   ./scripts/start-expo.ps1
+   ```
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### Running in Expo Go
 
-## Get a fresh project
+After starting the app, you can scan the QR code with your device to open it in Expo Go:
 
-When you're ready, run:
+1. Make sure you have Expo Go installed on your device 
+2. Ensure your phone and computer are on the same network
+3. Start the app with our optimized script:
 
-```bash
-npm run reset-project
-```
+   ```powershell
+   ./scripts/start-expo-go.ps1
+   ```
+
+4. Scan the QR code with your phone camera or Expo Go app
+
+### Troubleshooting Expo Go Issues
+
+If you encounter issues running the app in Expo Go, try these steps:
+
+1. **Clear cache and restart**
+
+   ```powershell
+   ./scripts/start-expo-go.ps1 --clean
+   ```
+
+2. **Verify expo-updates installation**
+
+   ```powershell
+   yarn add expo-updates
+   ```
+
+3. **Check network connectivity**
+   - Make sure your phone and computer are on the same WiFi network
+   - Try setting up a hotspot from your phone if WiFi has restrictions
+
+4. **Common error: Unable to resolve module**
+   - This often happens with new dependencies
+   - Try restarting the Expo server with the `--clear` flag
+   - Make sure all dependencies are properly installed
+
+5. **Firebase connection issues**
+   - The app is designed to work offline
+   - Check your .env file for correct Firebase configuration
+
+- On iOS: Use the Camera app to scan the QR code
+- On Android: Use the Expo Go app to scan the QR code
+
+## Troubleshooting Expo Go Issues
+
+If you encounter issues running the app in Expo Go, try these solutions:
+
+1. **Clear Cache and Restart**
+   ```powershell
+   npx expo start --clear
+   ```
+
+2. **Network Issues**
+   - Ensure your development machine and mobile device are on the same network
+   - Try using tunnel mode if on different networks:
+     ```powershell
+     npx expo start --tunnel
+     ```
+
+3. **Firebase Connection Issues**
+   - The app has offline capabilities, so you can still test most features
+   - Check your Firebase configuration in `.env` file
+
+4. **Blank Screen or Crashes**
+   - The app uses an ErrorBoundary to catch and display errors
+   - Check the Metro bundler console for error messages
+
+## Folder Structure
+
+- `/app` - Contains all screens and the routing structure
+- `/components` - Reusable UI components
+- `/config` - Configuration files (Firebase, etc.)
+- `/hooks` - Custom React hooks, including authentication
+- `/assets` - Images, fonts, and other static assets
+- `/constants` - App-wide constants, including colors and themes
+- `/scripts` - Utility scripts for development and deployment
 
 This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
 
