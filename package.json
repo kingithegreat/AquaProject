@@ -1,5 +1,5 @@
 {
-  "name": "my-expo-app",
+  "name": "aqua-360",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
@@ -7,6 +7,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "start-expo-go": "expo start --dev-client",
+    "clear-cache": "expo start --clear",
     "test": "jest --watchAll",
     "lint": "expo lint",
     "reset-project": "node ./scripts/reset-project.js"

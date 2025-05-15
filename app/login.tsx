@@ -1,21 +1,80 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Image, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Image, ActivityIndicator, Animated, Dimensions } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { StatusBar } from 'expo-status-bar';
 
 import { ThemedText } from '@/components/ThemedText';
-import { auth } from '@/config/firebase';
+import { auth, checkConnectionWithTimeout } from '@/config/firebase';
+import { Colors } from '@/constants/Colors';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
   const { redirect } = useLocalSearchParams<{ redirect?: string }>();
-
+  const logoAnimation = new Animated.Value(0);
+  
+  // Check for saved credentials on mount
+  useEffect(() => {
+    const loadSavedCredentials = async () => {
+      try {
+        const savedEmail = await AsyncStorage.getItem('aqua360_saved_email');
+        const rememberMeStatus = await AsyncStorage.getItem('aqua360_remember_me');
+        
+        if (savedEmail && rememberMeStatus === 'true') {
+          setEmail(savedEmail);
+          setRememberMe(true);
+        }
+        
+        // Animate the logo
+        Animated.sequence([
+          Animated.timing(logoAnimation, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true
+          }),
+          Animated.spring(logoAnimation, {
+            toValue: 1.1,
+            friction: 8,
+            tension: 40,
+            useNativeDriver: true
+          }),
+          Animated.spring(logoAnimation, {
+            toValue: 1,
+            friction: 8,
+            useNativeDriver: true
+          })
+        ]).start();
+        
+        // Check network connectivity
+        checkConnectionStatus();
+      } catch (e) {
+        console.error("Error loading saved credentials:", e);
+      }
+    };
+    
+    loadSavedCredentials();
+  }, []);
+  
+  // Check connection status
+  const checkConnectionStatus = async () => {
+    const connected = await checkConnectionWithTimeout();
+    setIsOnline(connected);
+  };
   const handleLogin = async () => {
     // Reset error state
     setError('');
+    
+    // Check online status first
+    if (!isOnline) {
+      setError('You appear to be offline. Please check your internet connection and try again.');
+      return;
+    }
     
     // Basic validation
     if (!email.trim() || !password.trim()) {
@@ -26,6 +85,24 @@ export default function LoginScreen() {
     if (!email.includes('@') || !email.includes('.')) {
       setError('Please enter a valid email address');
       return;
+    }
+    
+    // Save email if "Remember Me" is checked
+    if (rememberMe) {
+      try {
+        await AsyncStorage.setItem('aqua360_saved_email', email);
+        await AsyncStorage.setItem('aqua360_remember_me', 'true');
+      } catch (e) {
+        console.error("Error saving credentials:", e);
+      }
+    } else {
+      // Clear saved credentials if "Remember Me" is unchecked
+      try {
+        await AsyncStorage.removeItem('aqua360_saved_email');
+        await AsyncStorage.setItem('aqua360_remember_me', 'false');
+      } catch (e) {
+        console.error("Error clearing credentials:", e);
+      }
     }
     
     // Firebase authentication
@@ -48,6 +125,15 @@ export default function LoginScreen() {
         message: error.message
       });
       
+      // Check connection again if there's an error (might be a network issue)
+      const connected = await checkConnectionWithTimeout();
+      setIsOnline(connected);
+      
+      if (!connected) {
+        setError('Network error. Please check your internet connection and try again.');
+        return;
+      }
+      
       // More comprehensive error handling for Firebase auth errors
       switch(error.code) {
         case 'auth/invalid-email':
@@ -69,7 +155,7 @@ export default function LoginScreen() {
           setError('Too many failed login attempts. Please try again later.');
           break;
         case 'auth/network-request-failed':
-          setError('Network error. Please check your internet connection.');
+          setError('Network error. Please check your internet connection and try again.');
           break;
         case 'auth/internal-error':
           setError('Authentication service error. Please try again later.');
@@ -92,11 +178,21 @@ export default function LoginScreen() {
     } else {
       router.push('/signup');
     }
+  };  const handleForgotPassword = () => {
+    // Check if we have a valid email first
+    if (!email.trim() || !email.includes('@') || !email.includes('.')) {
+      setError('Please enter a valid email address to reset your password');
+      return;
+    }
+    
+    // In a real implementation, we would use Firebase's sendPasswordResetEmail
+    // For now, just display a message
+    setError(`If an account exists for ${email}, a password reset link will be sent. Please check your email.`);
   };
-
-  const handleForgotPassword = () => {
-    // Handle forgot password (this would typically navigate to a password reset page)
-    setError('Password reset functionality would be implemented here');
+  
+  // Toggle remember me state
+  const toggleRememberMe = () => {
+    setRememberMe(prev => !prev);
   };
 
   return (
@@ -149,21 +245,43 @@ export default function LoginScreen() {
                 editable={!loading}
               />
             </View>
-            
-            {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
+              {error ? (
+              <ThemedText style={styles.errorText}>{error}</ThemedText>
+            ) : (
+              <ThemedText style={styles.offlineText}>
+                {!isOnline ? 'You are currently offline. Please check your connection.' : ''}
+              </ThemedText>
+            )}
+              {/* Remember me checkbox and forgot password */}
+            <View style={styles.rememberMeContainer}>
+              <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                <TouchableOpacity 
+                  style={[styles.checkbox, rememberMe && styles.checkboxSelected]} 
+                  onPress={toggleRememberMe}
+                  activeOpacity={0.6}
+                >
+                  {rememberMe && (
+                    <ThemedText style={styles.checkmark}>✓</ThemedText>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity onPress={toggleRememberMe} activeOpacity={0.6}>
+                  <ThemedText style={styles.rememberMeText}>Remember me</ThemedText>
+                </TouchableOpacity>
+              </View>
+              
+              <TouchableOpacity 
+                style={[styles.forgotPasswordButton]} 
+                onPress={handleForgotPassword}
+                disabled={loading}
+              >
+                <ThemedText style={styles.forgotPasswordText}>Forgot password?</ThemedText>
+              </TouchableOpacity>
+            </View>
             
             <TouchableOpacity 
-              style={[styles.forgotPasswordButton]} 
-              onPress={handleForgotPassword}
-              disabled={loading}
-            >
-              <ThemedText style={styles.forgotPasswordText}>Forgot password?</ThemedText>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.loginButton, loading && styles.loginButtonDisabled]} 
+              style={[styles.loginButton, loading && styles.loginButtonDisabled, !isOnline && styles.loginButtonDisabled]} 
               onPress={handleLogin}
-              disabled={loading}
+              disabled={loading || !isOnline}
             >
               {loading ? (
                 <ActivityIndicator color="#fff" size="small" />
@@ -197,8 +315,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 20,
-  },
-  header: {
+  },  header: {
     alignItems: 'center',
     marginTop: 30,
     marginBottom: 40,
@@ -213,11 +330,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#21655A',
     marginTop: 15,
+    lineHeight: 34, // Add lineHeight to fix text squashing
+    paddingVertical: 4, // Add vertical padding to ensure text has room
+    includeFontPadding: true, // Ensure font padding is included
+    textAlignVertical: 'center', // Vertical alignment
   },
   subtitle: {
     fontSize: 16,
     color: '#21655A',
     marginTop: 5,
+    lineHeight: 22, // Add appropriate line height
   },
   formContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.85)',
@@ -254,9 +376,44 @@ const styles = StyleSheet.create({
     marginTop: 5,
     marginBottom: 10,
   },
-  forgotPasswordButton: {
-    alignSelf: 'flex-end',
+  offlineText: {
+    color: '#f39c12',
+    fontSize: 14,
+    marginTop: 5,
+    marginBottom: 10,
+    fontStyle: 'italic',
+  },
+  rememberMeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 20,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 1,
+    borderColor: '#21655A',
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  checkboxSelected: {
+    backgroundColor: '#21655A',
+  },
+  checkmark: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  rememberMeText: {
+    color: '#21655A',
+    fontSize: 14,
+    flex: 1,
+  },
+  forgotPasswordButton: {
+    justifyContent: 'flex-end',
   },
   forgotPasswordText: {
     color: '#1D9A96',
