@@ -13,7 +13,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, 
-  Text, 
   View, 
   ScrollView, 
   TouchableOpacity, 
@@ -277,10 +276,9 @@ export default function AboutUsScreen() {
           </TouchableOpacity>
         </ThemedView>
 
-        {/* Contact Us Section */}
-        <ThemedView style={styles.contentBox}>
+        {/* Contact Us Section */}        <ThemedView style={styles.contentBox}>
           <ThemedText style={styles.sectionTitle}>Contact Us</ThemedText>
-            <View style={styles.contactInfo}>
+          <View style={styles.contactInfo}>
             <View style={styles.contactRow}>
               <Ionicons name="location-outline" size={22} color="#21655A" />
               <ThemedText style={styles.contactText}>Pilot Bay (Mount End) Beach, Mount Maunganui</ThemedText>
@@ -292,7 +290,8 @@ export default function AboutUsScreen() {
             <View style={styles.contactRow}>
               <Ionicons name="mail-outline" size={22} color="#21655A" />
               <ThemedText style={styles.contactText}>admin@aqua360.co.nz</ThemedText>
-            </View>          </View>
+            </View>
+          </View>
         </ThemedView>
         
         {/* Footer with proper spacing */}

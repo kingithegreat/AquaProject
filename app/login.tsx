@@ -205,14 +205,16 @@ export default function LoginScreen() {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header */}
-          <View style={styles.header}>
+          {/* Header */}          <View style={styles.header}>
             <Image 
               source={require('../assets/images/aqua.webp')}
               style={styles.logo}
               resizeMode="contain"
             />
-            <ThemedText style={styles.title}>Aqua 360°</ThemedText>
+            {/* Added height to ensure proper text rendering */}
+            <View style={{ minHeight: 40, justifyContent: 'center' }}>
+              <ThemedText style={styles.title}>Aqua 360°</ThemedText>
+            </View>
             <ThemedText style={styles.subtitle}>Login to your account</ThemedText>
           </View>
           

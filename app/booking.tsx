@@ -534,12 +534,11 @@ function BookingScreen() {
                 display="default"
                 minimumDate={new Date()}
                 maximumDate={new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)} // 90 days from now
-              />
-              <TouchableOpacity
+              />              <TouchableOpacity
                 style={styles.confirmDateButton}
                 onPress={() => setShowCalendar(false)}
               >
-                <Text style={styles.confirmDateButtonText}>Confirm Date</Text>
+                <ThemedText style={styles.confirmDateButtonText}>Confirm Date</ThemedText>
               </TouchableOpacity>
             </View>
           </View>
@@ -567,12 +566,11 @@ function BookingScreen() {
                 mode="time"
                 display="default"
                 minuteInterval={15}
-              />
-              <TouchableOpacity
+              />              <TouchableOpacity
                 style={styles.confirmDateButton}
                 onPress={() => setShowTimePicker(false)}
               >
-                <Text style={styles.confirmDateButtonText}>Confirm Time</Text>
+                <ThemedText style={styles.confirmDateButtonText}>Confirm Time</ThemedText>
               </TouchableOpacity>
             </View>
           </View>

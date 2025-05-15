@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Dimensions, Text } from 'react-native';
+import { StyleSheet, View, Dimensions } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Platform } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
@@ -33,7 +33,6 @@ const ReviewCard = ({ text, author, rating = 5 }: ReviewCardProps) => {
       );
     }
   };
-
   // Function to render star rating
   const renderStars = (rating: number) => {
     const stars = [];
@@ -44,12 +43,12 @@ const ReviewCard = ({ text, author, rating = 5 }: ReviewCardProps) => {
     
     for (let i = 1; i <= maxRating; i++) {
       stars.push(
-        <Text key={i} style={[
+        <ThemedText key={i} style={[
           styles.star,
           i <= normalizedRating ? styles.starFilled : styles.starEmpty
         ]}>
           ★
-        </Text>
+        </ThemedText>
       );
     }
     

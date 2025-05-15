@@ -20,9 +20,15 @@ export function ThemedText({
   return (
     <Text
       allowFontScaling={true}
-      includeFontPadding={true}
       style={[
-        { color: color as string, textAlignVertical: 'center' },
+        { 
+          color: color as string, 
+          textAlignVertical: 'center',
+          // Add these properties to ensure proper text rendering across platforms
+          includeFontPadding: true,
+          padding: 0, 
+          margin: 0
+        },
         styles[type],
         type === 'link' ? { color: tintColor as string } : undefined,
         style,

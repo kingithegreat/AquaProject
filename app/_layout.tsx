@@ -10,7 +10,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState, useCallback } from 'react';
 import 'react-native-reanimated';
-import { View, Text, ActivityIndicator, StyleSheet, LogBox, Alert, Platform } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, LogBox, Alert, Platform } from 'react-native';
+import { ThemedText } from '@/components/ThemedText';
 import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
 import NetInfo from '@react-native-community/netinfo';
@@ -102,12 +103,11 @@ export default function RootLayout() {
 
     prepare();
   }, [loaded, error]);
-
   if (!isLoadingComplete) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color="#21655A" />
-        <Text style={styles.loadingText}>Loading Aqua 360°...</Text>
+        <ThemedText style={styles.loadingText}>Loading Aqua 360°...</ThemedText>
       </View>
     );
   }

@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
+import { ThemedText } from '@/components/ThemedText';
 import * as Updates from 'expo-updates';
 
 interface ErrorBoundaryProps {
@@ -68,25 +69,24 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     if (this.state.hasError) {
       // Render fallback UI
       return (
-        <View style={styles.container}>
-          <Ionicons name="warning-outline" size={64} color={Colors.light.palette.error.main} />
-          <Text style={styles.title}>Oops, Something Went Wrong</Text>
-          <Text style={styles.message}>
+        <View style={styles.container}>          <Ionicons name="warning-outline" size={64} color={Colors.light.palette.error} />
+          <ThemedText style={styles.title}>Oops, Something Went Wrong</ThemedText>
+          <ThemedText style={styles.message}>
             {this.state.error?.message || 'An unexpected error occurred.'}
-          </Text>
+          </ThemedText>
           <TouchableOpacity style={styles.button} onPress={this.handleReload}>
-            <Text style={styles.buttonText}>Reload App</Text>
+            <ThemedText style={styles.buttonText}>Reload App</ThemedText>
           </TouchableOpacity>
           {__DEV__ && this.state.error && (
             <View style={styles.developmentError}>
-              <Text style={styles.developmentErrorTitle}>Developer Details:</Text>
-              <Text style={styles.developmentErrorText}>
+              <ThemedText style={styles.developmentErrorTitle}>Developer Details:</ThemedText>
+              <ThemedText style={styles.developmentErrorText}>
                 {this.state.error.toString()}
-              </Text>
+              </ThemedText>
               {this.state.error.stack && (
-                <Text style={styles.developmentErrorText}>
+                <ThemedText style={styles.developmentErrorText}>
                   {this.state.error.stack}
-                </Text>
+                </ThemedText>
               )}
             </View>
           )}
