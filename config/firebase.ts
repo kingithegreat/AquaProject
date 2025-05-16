@@ -4,10 +4,10 @@ import 'react-native-get-random-values';
 
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getFirestore, collection, addDoc, getDocs, query, where, enableIndexedDbPersistence } from 'firebase/firestore';
 import NetInfo from '@react-native-community/netinfo';
 import { Platform } from 'react-native';
+import { safeGetItem, safeSetItem, safeRemoveItem, safeMultiGet } from '../utils/asyncStorageHelper';
 
 // Your Firebase configuration from environment variables
 // This is safer for exposing code and better for different environments
@@ -65,7 +65,7 @@ let offlineOperationsQueue: Array<{type: string; data: any; retryCount?: number}
 // Store network state in AsyncStorage for persistence across app restarts
 const saveNetworkState = async (connected: boolean) => {
   try {
-    await AsyncStorage.setItem('network_state', JSON.stringify({ isConnected: connected }));
+    await safeSetItem('network_state', JSON.stringify({ isConnected: connected }));
   } catch (error) {
     console.error('Error saving network state:', error);
   }
@@ -74,7 +74,7 @@ const saveNetworkState = async (connected: boolean) => {
 // Load network state from AsyncStorage on app start
 const loadNetworkState = async () => {
   try {
-    const storedState = await AsyncStorage.getItem('network_state');
+    const storedState = await safeGetItem('network_state');
     if (storedState) {
       const { isConnected: storedIsConnected } = JSON.parse(storedState);
       isConnected = storedIsConnected;
@@ -140,7 +140,7 @@ const setupNetworkMonitoring = () => {
 // Load any saved offline operations from AsyncStorage
 const loadOfflineOperations = async () => {
   try {
-    const savedQueue = await AsyncStorage.getItem('offline_queue');
+    const savedQueue = await safeGetItem('offline_queue');
     if (savedQueue) {
       const operations = JSON.parse(savedQueue);
       if (Array.isArray(operations) && operations.length > 0) {
@@ -201,7 +201,10 @@ const processOfflineQueue = async () => {
   
   // Save queue state to AsyncStorage for persistence across app restarts
   try {
-    await AsyncStorage.setItem('offline_queue', JSON.stringify(offlineOperationsQueue));
+    // Skip AsyncStorage on web platform
+    if (Platform.OS !== 'web') {
+      await safeSetItem('offline_queue', JSON.stringify(offlineOperationsQueue));
+    }
   } catch (error) {
     console.error('Error saving offline queue:', error);
   }
@@ -224,8 +227,7 @@ const processOfflineBooking = async (bookingData: any) => {
     
     if (!existingBookings.empty) {
       console.log(`Booking ${bookingData.reference} already exists in Firestore, skipping upload`);
-      // Only remove from AsyncStorage if we're certain it exists in Firestore
-      await AsyncStorage.removeItem(`booking_${bookingData.reference}`);
+      await safeRemoveItem(`booking_${bookingData.reference}`);
       return;
     }
       // Try to save with timeout for better error handling
@@ -255,8 +257,7 @@ const processOfflineBooking = async (bookingData: any) => {
         );
         
         if (!verifyQuery.empty) {
-          // Only remove from AsyncStorage if verification succeeds
-          await AsyncStorage.removeItem(`booking_${bookingData.reference}`);
+          await safeRemoveItem(`booking_${bookingData.reference}`);
           resolve(true);
         } else {
           // If verification fails, don't delete from AsyncStorage
@@ -364,7 +365,7 @@ export const addToOfflineQueue = async (operation: {type: string; data: any}) =>
   
   // Save updated queue to AsyncStorage for persistence
   try {
-    await AsyncStorage.setItem('offline_queue', JSON.stringify(offlineOperationsQueue));
+    await safeSetItem('offline_queue', JSON.stringify(offlineOperationsQueue));
     console.log('Offline queue saved to storage');
   } catch (error) {
     console.error('Error saving offline queue to storage:', error);
@@ -375,7 +376,7 @@ export const addToOfflineQueue = async (operation: {type: string; data: any}) =>
 export const syncOfflineData = async (): Promise<boolean> => {
   // First load any saved operations that might have been added while the app was closed
   try {
-    const savedQueue = await AsyncStorage.getItem('offline_queue');
+    const savedQueue = await safeGetItem('offline_queue');
     if (savedQueue) {
       const operations = JSON.parse(savedQueue);
       if (Array.isArray(operations)) {

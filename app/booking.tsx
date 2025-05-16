@@ -7,8 +7,7 @@ import {
   Image,
   Modal,
   Platform,
-  Alert,
-  Text
+  Alert
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -219,11 +218,13 @@ function BookingScreen() {
         createdAt: new Date().toISOString(),
       };
       
-      console.log('Preparing booking:', bookingData);
-
-      // Always store locally first to ensure we have a backup
-      await AsyncStorage.setItem(`booking_${ref}`, JSON.stringify(bookingData));
-      console.log('Booking saved to local storage');      // First check if we're online to decide how to handle the booking
+      console.log('Preparing booking:', bookingData);      // Always store locally first to ensure we have a backup (except on web)
+      if (Platform.OS !== 'web') {
+        await AsyncStorage.setItem(`booking_${ref}`, JSON.stringify(bookingData));
+        console.log('Booking saved to local storage');
+      } else {
+        console.log('Web platform detected - skipping AsyncStorage operation');
+      }// First check if we're online to decide how to handle the booking
       const checkConnection = async () => {
         try {
           const isOnline = await checkConnectionWithTimeout(3000); // Check with a timeout
@@ -342,16 +343,7 @@ function BookingScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* Configure screen header */}
-      <Stack.Screen options={{ 
-        title: 'Book Your Adventure',
-        headerStyle: {
-          backgroundColor: '#000000',
-        },
-        headerTintColor: '#FFFFFF',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-        },
-      }} />
+      <Stack.Screen options={{ title: 'Book Your Adventure' }} />
       
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Date Selection Section */}
@@ -526,15 +518,16 @@ function BookingScreen() {
                 <TouchableOpacity onPress={() => setShowCalendar(false)}>
                   <Ionicons name="close" size={24} color="#666" />
                 </TouchableOpacity>
-              </View>
-              <DateTimePicker
+              </View>              <DateTimePicker
                 value={selectedDate}
                 onChange={handleDateChange}
                 mode="date"
                 display="default"
                 minimumDate={new Date()}
                 maximumDate={new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)} // 90 days from now
-              />              <TouchableOpacity
+                textColor="#000000"
+              />
+              <TouchableOpacity
                 style={styles.confirmDateButton}
                 onPress={() => setShowCalendar(false)}
               >
@@ -559,14 +552,15 @@ function BookingScreen() {
                 <TouchableOpacity onPress={() => setShowTimePicker(false)}>
                   <Ionicons name="close" size={24} color="#666" />
                 </TouchableOpacity>
-              </View>
-              <DateTimePicker
+              </View>              <DateTimePicker
                 value={selectedTime}
                 onChange={handleTimeChange}
                 mode="time"
                 display="default"
                 minuteInterval={15}
-              />              <TouchableOpacity
+                textColor="#000000"
+              />
+              <TouchableOpacity
                 style={styles.confirmDateButton}
                 onPress={() => setShowTimePicker(false)}
               >
@@ -721,14 +715,12 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 80,
     borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-  },
-  serviceTitle: {
+    borderTopRightRadius: 10,  },  serviceTitle: {
     padding: 8,
     textAlign: 'center',
     fontWeight: '700', // Increased from 600 to 700 for better visibility
     fontSize: 16,
-    color: Colors.light.palette.neutral[900],
+    color: '#ffffff' // Changed to white for consistency with other pages
   },
   quantitySelector: {
     flexDirection: 'row',

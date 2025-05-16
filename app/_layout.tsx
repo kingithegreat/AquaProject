@@ -120,7 +120,11 @@ export default function RootLayout() {
     <ErrorBoundary>
       <AuthProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack>
+          <Stack screenOptions={{
+            headerStyle: { backgroundColor: '#ffffff' },
+            headerTintColor: '#000000',
+            headerTitleStyle: { fontWeight: 'bold' },
+          }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="about-us" options={{ title: "About Us" }} />
             <Stack.Screen name="ai-assist" options={{ title: "AI Assistant" }} />

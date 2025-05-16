@@ -200,12 +200,12 @@ export default function LoginScreen() {
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
-      >
-        <ScrollView 
+      >        <ScrollView 
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header */}          <View style={styles.header}>
+          {/* Header */}
+          <View style={styles.header}>
             <Image 
               source={require('../assets/images/aqua.webp')}
               style={styles.logo}
@@ -219,8 +219,7 @@ export default function LoginScreen() {
           </View>
           
           {/* Login Form */}
-          <View style={styles.formContainer}>
-            <View style={styles.inputContainer}>
+          <View style={styles.formContainer}>            <View style={styles.inputContainer}>
               <ThemedText style={styles.label}>Email</ThemedText>
               <TextInput
                 style={styles.input}
@@ -232,10 +231,10 @@ export default function LoginScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 editable={!loading}
+                textContentType="emailAddress"
               />
             </View>
-            
-            <View style={styles.inputContainer}>
+              <View style={styles.inputContainer}>
               <ThemedText style={styles.label}>Password</ThemedText>
               <TextInput
                 style={styles.input}
@@ -245,14 +244,16 @@ export default function LoginScreen() {
                 onChangeText={setPassword}
                 secureTextEntry
                 editable={!loading}
+                textContentType="password"
               />
-            </View>
-              {error ? (
+            </View>              {error ? (
               <ThemedText style={styles.errorText}>{error}</ThemedText>
-            ) : (
+            ) : !isOnline ? (
               <ThemedText style={styles.offlineText}>
-                {!isOnline ? 'You are currently offline. Please check your connection.' : ''}
+                You are currently offline. Please check your connection.
               </ThemedText>
+            ) : (
+              <ThemedText style={{height: 0}}></ThemedText>
             )}
               {/* Remember me checkbox and forgot password */}
             <View style={styles.rememberMeContainer}>

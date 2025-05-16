@@ -64,12 +64,12 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       );
     }
   };
-
   render() {
     if (this.state.hasError) {
       // Render fallback UI
       return (
-        <View style={styles.container}>          <Ionicons name="warning-outline" size={64} color={Colors.light.palette.error} />
+        <View style={styles.container}>
+          <Ionicons name="warning-outline" size={64} color={Colors.light.palette.error} />
           <ThemedText style={styles.title}>Oops, Something Went Wrong</ThemedText>
           <ThemedText style={styles.message}>
             {this.state.error?.message || 'An unexpected error occurred.'}
