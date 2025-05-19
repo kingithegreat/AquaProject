@@ -178,7 +178,9 @@ export default function LoginScreen() {
     } else {
       router.push('/signup');
     }
-  };  const handleForgotPassword = () => {
+  };
+  
+  const handleForgotPassword = () => {
     // Check if we have a valid email first
     if (!email.trim() || !email.includes('@') || !email.includes('.')) {
       setError('Please enter a valid email address to reset your password');
@@ -196,114 +198,116 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
-      >        <ScrollView 
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
+    <>
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.container}
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <Image 
-              source={require('../assets/images/aqua.webp')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-            {/* Added height to ensure proper text rendering */}
-            <View style={{ minHeight: 40, justifyContent: 'center' }}>
-              <ThemedText style={styles.title}>Aqua 360°</ThemedText>
-            </View>
-            <ThemedText style={styles.subtitle}>Login to your account</ThemedText>
-          </View>
-          
-          {/* Login Form */}
-          <View style={styles.formContainer}>            <View style={styles.inputContainer}>
-              <ThemedText style={styles.label}>Email</ThemedText>
-              <TextInput
-                style={styles.input}
-                placeholder="your@email.com"
-                placeholderTextColor="#aaa"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!loading}
-                textContentType="emailAddress"
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+          >{/* Header */}
+            <View style={styles.header}>
+              <Image 
+                source={require('../assets/images/aqua.webp')}
+                style={styles.logo}
+                resizeMode="contain"
               />
+              {/* Added height to ensure proper text rendering */}
+              <View style={{ minHeight: 40, justifyContent: 'center' }}>
+                <ThemedText style={styles.title}>Aqua 360°</ThemedText>
+              </View>
+              <ThemedText style={styles.subtitle}>Login to your account</ThemedText>
             </View>
+            
+            {/* Login Form */}
+            <View style={styles.formContainer}>
               <View style={styles.inputContainer}>
-              <ThemedText style={styles.label}>Password</ThemedText>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your password"
-                placeholderTextColor="#aaa"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                editable={!loading}
-                textContentType="password"
-              />
-            </View>              {error ? (
-              <ThemedText style={styles.errorText}>{error}</ThemedText>
-            ) : !isOnline ? (
-              <ThemedText style={styles.offlineText}>
-                You are currently offline. Please check your connection.
-              </ThemedText>
-            ) : (
-              <ThemedText style={{height: 0}}></ThemedText>
-            )}
+                <ThemedText style={styles.label}>Email</ThemedText>
+                <TextInput
+                  style={styles.input}
+                  placeholder="your@email.com"
+                  placeholderTextColor="#aaa"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!loading}
+                  textContentType="emailAddress"
+                />
+              </View>
+              <View style={styles.inputContainer}>
+                <ThemedText style={styles.label}>Password</ThemedText>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your password"
+                  placeholderTextColor="#aaa"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  editable={!loading}
+                  textContentType="password"
+                />
+              </View>
+              {error ? (
+                <ThemedText style={styles.errorText}>{error}</ThemedText>
+              ) : !isOnline ? (
+                <ThemedText style={styles.offlineText}>
+                  You are currently offline. Please check your connection.
+                </ThemedText>
+              ) : null}
               {/* Remember me checkbox and forgot password */}
-            <View style={styles.rememberMeContainer}>
-              <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <View style={styles.rememberMeContainer}>
+                <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                  <TouchableOpacity 
+                    style={[styles.checkbox, rememberMe && styles.checkboxSelected]} 
+                    onPress={toggleRememberMe}
+                    activeOpacity={0.6}
+                  >
+                    {rememberMe && (
+                      <ThemedText style={styles.checkmark}>✓</ThemedText>
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={toggleRememberMe} activeOpacity={0.6}>
+                    <ThemedText style={styles.rememberMeText}>Remember me</ThemedText>
+                  </TouchableOpacity>
+                </View>
+                
                 <TouchableOpacity 
-                  style={[styles.checkbox, rememberMe && styles.checkboxSelected]} 
-                  onPress={toggleRememberMe}
-                  activeOpacity={0.6}
+                  style={[styles.forgotPasswordButton]} 
+                  onPress={handleForgotPassword}
+                  disabled={loading}
                 >
-                  {rememberMe && (
-                    <ThemedText style={styles.checkmark}>✓</ThemedText>
-                  )}
-                </TouchableOpacity>
-                <TouchableOpacity onPress={toggleRememberMe} activeOpacity={0.6}>
-                  <ThemedText style={styles.rememberMeText}>Remember me</ThemedText>
+                  <ThemedText style={styles.forgotPasswordText}>Forgot password?</ThemedText>
                 </TouchableOpacity>
               </View>
               
               <TouchableOpacity 
-                style={[styles.forgotPasswordButton]} 
-                onPress={handleForgotPassword}
-                disabled={loading}
+                style={[styles.loginButton, loading && styles.loginButtonDisabled, !isOnline && styles.loginButtonDisabled]} 
+                onPress={handleLogin}
+                disabled={loading || !isOnline}
               >
-                <ThemedText style={styles.forgotPasswordText}>Forgot password?</ThemedText>
+                {loading ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <ThemedText style={styles.loginButtonText}>Login</ThemedText>
+                )}
               </TouchableOpacity>
             </View>
             
-            <TouchableOpacity 
-              style={[styles.loginButton, loading && styles.loginButtonDisabled, !isOnline && styles.loginButtonDisabled]} 
-              onPress={handleLogin}
-              disabled={loading || !isOnline}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <ThemedText style={styles.loginButtonText}>Login</ThemedText>
-              )}
-            </TouchableOpacity>
-          </View>
-          
-          {/* Sign Up Link */}
-          <View style={styles.signupContainer}>
-            <ThemedText style={styles.signupText}>Don't have an account?</ThemedText>
-            <TouchableOpacity onPress={handleSignUp} disabled={loading}>
-              <ThemedText style={styles.signupLink}>Sign Up</ThemedText>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+            {/* Sign Up Link */}
+            <View style={styles.signupContainer}>
+              <ThemedText style={styles.signupText}>Don't have an account?</ThemedText>
+              <TouchableOpacity onPress={handleSignUp} disabled={loading}>
+                <ThemedText style={styles.signupLink}>Sign Up</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </>
   );
 }
 

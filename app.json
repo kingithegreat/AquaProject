@@ -44,6 +44,22 @@
           "resizeMode": "contain",
           "backgroundColor": "#52D6E2"
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "googleServicesFile": "./google-services.json"
+          }
+        }
+      ],
+      [
+        "expo-firebase-core",
+        {
+          "android": {
+            "googleServicesFile": "./google-services.json"
+          }
+        }
       ]
     ],
     "experiments": {
