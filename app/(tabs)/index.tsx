@@ -201,10 +201,9 @@ export default function HomeScreen() {
       </SafeAreaView>
     );
   }
-  
-  return (
+    return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <StatusBar style="dark" backgroundColor="#000000" />
+      <StatusBar style="light" backgroundColor="rgba(33, 101, 90, 1)" />
       <Stack.Screen options={{ headerShown: false }} />
       {/* Header Section - no rounded borders */}
       <GlassBackground style={styles.header} intensity={80} noRadius={true}>
@@ -397,14 +396,13 @@ const styles = StyleSheet.create({
   },
   noRadius: {
     borderRadius: 0, // Remove border radius for header and footer
-  },
-  header: {
+  },  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
     paddingHorizontal: 30,
     paddingVertical: 15,
-    backgroundColor: 'rgba(33, 101, 90, 1)', // Changed to match buttons' solid color
+    backgroundColor: '#52D6E2', // Updated to match Reviews page color
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.5)',
     borderBottomLeftRadius: 20,  // Round the bottom left corner

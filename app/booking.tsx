@@ -655,10 +655,9 @@ function BookingScreen() {
 /**
  * Styles for the BookingScreen component
  */
-const styles = StyleSheet.create({
-  safeArea: {
+const styles = StyleSheet.create({  safeArea: {
     flex: 1,
-    backgroundColor: Colors.light.palette.primary.light,
+    backgroundColor: '#52D6E2', // Updated to match the Reviews page color
   },
   scrollView: {
     flex: 1,

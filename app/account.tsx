@@ -302,20 +302,18 @@ function AccountPage() {
       console.error('Date formatting error:', error);
       return 'Error formatting date';
     }
-  };
-
-  return (
+  };  return (
     <ThemedView
       style={styles.container}
-      lightColor={Colors.light.palette.primary.light}
-      darkColor={Colors.dark.palette.primary.light}
+      lightColor="#52D6E2"
+      darkColor="#52D6E2"
     >
       <Stack.Screen options={{ 
         title: 'My Account',
         headerStyle: {
-          backgroundColor: '#ffffff', // changed to white header
+          backgroundColor: '#ffffff', // Changed to white for the header bar with title
         },
-        headerTintColor: '#000000', // changed tint to black
+        headerTintColor: '#21655A', // Changed tint color to match the app's green theme
         headerTitleStyle: {
           fontWeight: 'bold',
         },
@@ -446,6 +444,7 @@ const windowWidth = Dimensions.get('window').width;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#52D6E2', // Updated to match Reviews page background color
   },
   scrollView: {
     flex: 1,

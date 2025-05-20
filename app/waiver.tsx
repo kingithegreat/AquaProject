@@ -162,7 +162,7 @@ const windowHeight = Dimensions.get('window').height;
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#52D6E2', // Background color to match home page
+    backgroundColor: '#52D6E2', // Background color to match reviews page
   },
   container: {
     flex: 1,
