@@ -20,6 +20,7 @@ import { Colors } from '@/constants/Colors';
 import { withProtectedRoute } from '@/hooks/withProtectedRoute';
 import { useAuth } from '@/hooks/useAuth';
 import { db, checkOnlineStatus, addToOfflineQueue } from '@/config/firebase';
+import { ThemedText } from '@/components/ThemedText';
 
 function MyBookingsScreen() {
   const router = useRouter();
@@ -256,8 +257,7 @@ function MyBookingsScreen() {
                 </TouchableOpacity>
               </View>
 
-              {bookings.map((booking) => (
-                <View key={booking.id} style={styles.bookingCard}>
+              {bookings.map((booking) => (                <View key={booking.id} style={styles.bookingCard}>
                   <View style={styles.bookingCardHeader}>
                     <View style={{backgroundColor: 'white', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4}}>
                       <Text
@@ -269,10 +269,6 @@ function MyBookingsScreen() {
                       >
                         {getServiceName(booking.serviceType, booking.quantity)}
                       </Text>
-                    </View>                    <View style={styles.statusBadge}>
-                      <ThemedText style={[styles.statusText, { color: '#000' }]}>
-                        {booking.status.toUpperCase()}
-                      </ThemedText>
                     </View>
                   </View>
                   
@@ -309,13 +305,18 @@ function MyBookingsScreen() {
                       </View>
                     )}
                   </View>
-                  
-                  <View style={styles.referenceContainer}>
+                    <View style={styles.referenceContainer}>
                     <ThemedText style={styles.referenceLabel}>
                       Booking Reference:
                     </ThemedText>
                     <ThemedText style={styles.referenceNumber}>
                       {booking.reference}
+                    </ThemedText>
+                  </View>
+                  
+                  <View style={[styles.statusBadge, styles.statusBadgeBottom]}>
+                    <ThemedText style={[styles.statusText, { color: '#000' }]}>
+                      {booking.status.toUpperCase()}
                     </ThemedText>
                   </View>
                 </View>
@@ -428,13 +429,19 @@ const styles = StyleSheet.create({
     color: '#000',
     fontWeight: '700',
     fontSize: 18,
-  },
-  statusBadge: {
+  },  statusBadge: {
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,
-  },  statusText: {
+  },
+  statusBadgeBottom: {
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 8,
+    backgroundColor: 'rgba(33, 101, 90, 0.2)',
+  },
+  statusText: {
     color: '#000',
     fontWeight: '600',
     fontSize: 12,

@@ -469,19 +469,22 @@ const styles = StyleSheet.create({
   },
   profileImageContainer: {
     marginBottom: 16,
-  },
-  profileImagePlaceholder: {
+  },  profileImagePlaceholder: {
     width: 100,
     height: 100,
     borderRadius: 50,
     backgroundColor: '#21655A',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingBottom: 4, // Add padding at bottom to visually center text
   },
   profileInitial: {
     color: '#fff',
     fontSize: 40,
     fontWeight: 'bold',
+    lineHeight: 48, // Ensure proper line height for the character
+    includeFontPadding: false, // Remove default font padding
+    textAlignVertical: 'center', // Ensure vertical alignment
   },
   userEmail: {
     fontSize: 18,
