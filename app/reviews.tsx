@@ -79,9 +79,9 @@ interface FormErrors {
   rating?: string;
 }
 
-export default function ReviewsScreen() {
-  // Review state
+export default function ReviewsScreen() {  // Review state
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   
   // Form state
   const [author, setAuthor] = useState('');
@@ -98,16 +98,16 @@ export default function ReviewsScreen() {
   // Refs for text inputs to help with focus management
   const emailInputRef = useRef<TextInput>(null);
   const reviewInputRef = useRef<TextInput>(null);
-  const ratingInputRef = useRef<TextInput>(null);
-  // Fetch reviews from Firestore on component mount
+  const ratingInputRef = useRef<TextInput>(null);  // Fetch reviews from Firestore on component mount
   useEffect(() => {
     fetchReviews();
   }, []);
-
+  
   // Function to fetch reviews from Firestore with improved error handling
   const fetchReviews = async () => {
     try {
       setIsInitialLoading(true);
+      setFetchError(null);
       const reviewsQuery = query(
         collection(db, 'reviews'),
         orderBy('createdAt', 'desc')
@@ -127,8 +127,7 @@ export default function ReviewsScreen() {
             text: data.text || '',
             rating: typeof data.rating === 'number' ? data.rating : 5,
             createdAt: data.createdAt?.toDate?.() || new Date() // Safely convert Timestamp or use current date
-          });
-        } catch (err) {
+          });        } catch (err) {
           console.warn('Error processing review document:', err);
         }
       });
@@ -136,28 +135,10 @@ export default function ReviewsScreen() {
       setReviews(fetchedReviews);
     } catch (error: any) {
       console.error('Error fetching reviews:', error);
-      // Check specifically for permissions error and handle gracefully
-      if (error?.code === 'permission-denied' || error?.message?.includes('Missing or insufficient permissions')) {
-        // Load sample reviews when Firestore permissions fail
-        setReviews([
-          { 
-            id: 'sample1',
-            author: 'Sarah M.',
-            email: 'sample@example.com',
-            text: 'Had an amazing time on the jet skis! Highly recommend for a fun day out.',
-            rating: 5,
-            createdAt: new Date()
-          },
-          {
-            id: 'sample2',
-            author: 'James L.',
-            email: 'sample@example.com',
-            text: 'The tours were excellent. Professional staff and beautiful scenery.',
-            rating: 4,
-            createdAt: new Date()
-          }
-        ]);
-      }
+      // Set an empty array for reviews and set error state
+      setReviews([]);
+      // We could also set an error state here if needed
+      setFetchError("Couldn't load reviews. Please try again later.");
     } finally {
       setIsInitialLoading(false);
     }
@@ -245,7 +226,6 @@ export default function ReviewsScreen() {
       setIsLoading(false);
     }
   };
-
   return (
     <ThemedView style={styles.page}>
       <StatusBar 
@@ -253,14 +233,6 @@ export default function ReviewsScreen() {
         backgroundColor="rgba(33, 101, 90, 1)"
       />
       
-      {/* Back button */}
-      <TouchableOpacity 
-        style={styles.backButton}
-        onPress={() => router.back()}
-      >
-        <Ionicons name="arrow-back" size={24} color="#fff" />
-      </TouchableOpacity>
-
       <ScrollView 
         contentContainerStyle={styles.scrollContent} 
         keyboardShouldPersistTaps="handled"
@@ -367,11 +339,15 @@ export default function ReviewsScreen() {
           <ThemedText type="heading2" style={styles.sectionTitle}>
             Customer Reviews
           </ThemedText>
-          
-          {isInitialLoading ? (
+            {isInitialLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={Colors.light.palette.secondary.main} />
               <ThemedText style={styles.loadingText}>Loading reviews...</ThemedText>
+            </View>
+          ) : fetchError ? (
+            <View style={styles.errorContainer}>
+              <Ionicons name="warning" size={24} color="#cc0000" />
+              <ThemedText style={styles.errorText}>{fetchError}</ThemedText>
             </View>
           ) : reviews.length === 0 ? (
             <ThemedText style={styles.noReviewsText}>
@@ -480,10 +456,18 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 20,
-  },
-  loadingContainer: {
+  },  loadingContainer: {
     padding: 40,
     alignItems: 'center',
+  },
+  errorContainer: {
+    padding: 20,
+    alignItems: 'center', 
+    flexDirection: 'row',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 240, 240, 0.8)',
+    borderRadius: 8,
+    marginVertical: 10,
   },
   loadingText: {
     marginTop: 16,
