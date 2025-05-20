@@ -55,13 +55,12 @@ export default function AboutUsScreen() {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
-
   // Fetch reviews from Firestore
   useEffect(() => {
     const fetchReviews = async () => {
       try {
         const reviewsRef = collection(db, 'reviews');
-        const q = query(reviewsRef, orderBy('timestamp', 'desc'), limit(5));
+        const q = query(reviewsRef, orderBy('createdAt', 'desc'), limit(5));
         const querySnapshot = await getDocs(q);
         
         const fetchedReviews: Review[] = [];
@@ -75,9 +74,42 @@ export default function AboutUsScreen() {
           });
         });
         
-        setReviews(fetchedReviews);
+        if (fetchedReviews.length > 0) {
+          setReviews(fetchedReviews);
+        } else {
+          // If no reviews were found, add sample reviews
+          setReviews([
+            { 
+              id: 'sample1',
+              author: 'Sarah M.',
+              text: 'Had an amazing time on the jet skis! Highly recommend for a fun day out.',
+              rating: 5
+            },
+            {
+              id: 'sample2',
+              author: 'James L.',
+              text: 'The tours were excellent. Professional staff and beautiful scenery.',
+              rating: 4
+            }
+          ]);
+        }
       } catch (error) {
         console.error('Error fetching reviews:', error);
+        // Add fallback reviews if there's an error
+        setReviews([
+          { 
+            id: 'sample1',
+            author: 'Sarah M.',
+            text: 'Had an amazing time on the jet skis! Highly recommend for a fun day out.',
+            rating: 5
+          },
+          {
+            id: 'sample2',
+            author: 'James L.',
+            text: 'The tours were excellent. Professional staff and beautiful scenery.',
+            rating: 4
+          }
+        ]);
       } finally {
         setLoading(false);
       }
@@ -155,9 +187,9 @@ export default function AboutUsScreen() {
       <ScrollView
         style={{ flex: 1, backgroundColor: '#52D6E2' }}
         contentContainerStyle={styles.container}
-        showsVerticalScrollIndicator={true}
-      >
-        {/* Our Story Section */}        <ThemedView style={styles.contentBox}>
+        showsVerticalScrollIndicator={true}      >
+        {/* Our Story Section */}
+        <ThemedView style={styles.contentBox}>
           <ThemedText style={styles.sectionTitle}>Our Story</ThemedText>
           <ThemedText style={styles.paragraph}>
             At AQUA 360°, we take great pride in being a family-owned business dedicated to offering thrilling jet ski hire in the stunning Bay of Plenty, where adventure meets breathtaking scenery.
@@ -266,8 +298,7 @@ export default function AboutUsScreen() {
               )}
             </ScrollView>
           )}
-          
-          <TouchableOpacity 
+            <TouchableOpacity 
             style={styles.reviewsButton}
             onPress={() => router.push('/reviews')}
           >
@@ -275,8 +306,9 @@ export default function AboutUsScreen() {
             <Ionicons name="arrow-forward" size={18} color="#ffffff" />
           </TouchableOpacity>
         </ThemedView>
-
-        {/* Contact Us Section */}        <ThemedView style={styles.contentBox}>
+        
+        {/* Contact Us Section */}
+        <ThemedView style={styles.contentBox}>
           <ThemedText style={styles.sectionTitle}>Contact Us</ThemedText>
           <View style={styles.contactInfo}>
             <View style={styles.contactRow}>

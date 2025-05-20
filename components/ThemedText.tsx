@@ -17,12 +17,22 @@ export function ThemedText({
   const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
   const tintColor = useThemeColor({}, 'tint');
 
+  // If a color is provided in the style prop, use it. Otherwise, use the theme color.
+  // Flatten the style prop to check for color.
+  let finalColor = color;
+  if (style) {
+    const flatStyle = Array.isArray(style) ? Object.assign({}, ...style) : style;
+    if (flatStyle && flatStyle.color) {
+      finalColor = flatStyle.color;
+    }
+  }
+
   return (
     <Text
       allowFontScaling={true}
       style={[
         { 
-          color: color as string, 
+          color: finalColor as string, 
           textAlignVertical: 'center',
           // Add these properties to ensure proper text rendering across platforms
           includeFontPadding: true,
@@ -30,8 +40,8 @@ export function ThemedText({
           margin: 0
         },
         styles[type],
-        type === 'link' ? { color: tintColor as string } : undefined,
         style,
+        // Remove the 'link' color override here so explicit color always wins
       ]}
       {...rest}
     />

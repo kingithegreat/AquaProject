@@ -7,7 +7,8 @@ import {
   Image,
   ActivityIndicator,
   Alert,
-  RefreshControl
+  RefreshControl,
+  Text
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,7 +16,6 @@ import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { ThemedText } from '@/components/ThemedText';
 import { Colors } from '@/constants/Colors';
 import { withProtectedRoute } from '@/hooks/withProtectedRoute';
 import { useAuth } from '@/hooks/useAuth';
@@ -259,9 +259,17 @@ function MyBookingsScreen() {
               {bookings.map((booking) => (
                 <View key={booking.id} style={styles.bookingCard}>
                   <View style={styles.bookingCardHeader}>
-                    <ThemedText style={styles.serviceType}>
-                      {getServiceName(booking.serviceType, booking.quantity)}
-                    </ThemedText>
+                    <View style={{backgroundColor: 'white', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4}}>
+                      <Text
+                        style={{
+                          color: 'black',
+                          fontWeight: '700',
+                          fontSize: 16,
+                        }}
+                      >
+                        {getServiceName(booking.serviceType, booking.quantity)}
+                      </Text>
+                    </View>
                     <View style={styles.statusBadge}>
                       <ThemedText style={styles.statusText}>
                         {booking.status.toUpperCase()}
@@ -418,7 +426,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   serviceType: {
-    color: '#fff',
+    color: '#000',
     fontWeight: '700',
     fontSize: 18,
   },
