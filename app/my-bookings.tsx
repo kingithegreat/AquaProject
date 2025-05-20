@@ -269,9 +269,8 @@ function MyBookingsScreen() {
                       >
                         {getServiceName(booking.serviceType, booking.quantity)}
                       </Text>
-                    </View>
-                    <View style={styles.statusBadge}>
-                      <ThemedText style={styles.statusText}>
+                    </View>                    <View style={styles.statusBadge}>
+                      <ThemedText style={[styles.statusText, { color: '#000' }]}>
                         {booking.status.toUpperCase()}
                       </ThemedText>
                     </View>
@@ -435,9 +434,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,
-  },
-  statusText: {
-    color: '#fff',
+  },  statusText: {
+    color: '#000',
     fontWeight: '600',
     fontSize: 12,
   },

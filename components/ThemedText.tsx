@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     letterSpacing: 0.15,
-    fontFamily: 'System', // Consider using a custom font like Inter or SF Pro
+    fontFamily: 'System', 
   },
   bodyBold: {
     fontSize: 16,

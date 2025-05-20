@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, View, Image, Dimensions, Platform, ActivityIndicator } from 'react-native';
+import { StyleSheet, ScrollView, TouchableOpacity, View, Image, Dimensions, Platform, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router, useFocusEffect } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { Asset } from 'expo-asset';
+import { StatusBar } from 'expo-status-bar';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -144,10 +146,10 @@ export default function HomeScreen() {
         <ThemedText style={styles.loadingText}>Loading Aqua 360°...</ThemedText>
       </SafeAreaView>
     );
-  }
-
-  return (
-    <SafeAreaView style={styles.safeArea}>
+  }  return (
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <StatusBar style="dark" backgroundColor="#000000" />
+      <Stack.Screen options={{ headerShown: false }} />
       {/* Header Section - no rounded borders */}
       <GlassBackground style={styles.header} intensity={80} noRadius={true}>
         {loading ? (
@@ -236,7 +238,7 @@ export default function HomeScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               style={styles.reviewsCarousel}
-              contentContainerStyle={styles.reviewsContent}
+              contentContainerStyle={styles.scrollViewContent}
             >
               {reviews.map((review, index) => (
                 <ReviewCard
