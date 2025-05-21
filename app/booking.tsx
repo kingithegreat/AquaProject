@@ -55,9 +55,8 @@ function BookingScreen() {
   const [selectedTime, setSelectedTime] = useState(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
-  
-  // State for tracking selected service type
-  const [selectedService, setSelectedService] = useState<string | null>(null);
+    // State for tracking selected service type
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
   
   // State to track number of jet skis (1-4)
   const [jetSkiCount, setJetSkiCount] = useState(1);
@@ -144,13 +143,19 @@ function BookingScreen() {
       setSelectedTime(time);
     }
   };
-  
-  /**
-   * Updates selected service type state
+    /**
+   * Updates selected services array
    * @param {string} service - Service identifier ('jetski', 'aqualounge', or 'tours')
    */
   const handleServiceSelect = (service: string) => {
-    setSelectedService(service);
+    // Check if the service is already selected
+    if (selectedServices.includes(service)) {
+      // Remove the service if it's already selected
+      setSelectedServices(selectedServices.filter(s => s !== service));
+    } else {
+      // Add the service if it's not selected
+      setSelectedServices([...selectedServices, service]);
+    }
   };
   
   /**
@@ -182,21 +187,24 @@ function BookingScreen() {
       setJetSkiCount(jetSkiCount - 1);
     }
   };
-  
-  /**
+    /**
    * Calculates the total booking cost based on selected services and add-ons
    * @returns {number} Total booking cost in dollars
    */
   const calculateTotal = () => {
     let total = 0;
     
-    // Base price based on service
-    if (selectedService === 'jetski') {
-      total += 130 * jetSkiCount; // $130 per jet ski for 30 minutes (updated price)
-    } else if (selectedService === 'aqualounge') {
-      total += 300; // $300 for 2-hour Aqua Lounge package (updated price)
-    } else if (selectedService === 'tours') {
-      total += 220; // $220 per hour for guided tours (updated price)
+    // Base price based on services
+    if (selectedServices.includes('jetski')) {
+      total += 130 * jetSkiCount; // $130 per jet ski for 30 minutes
+    }
+    
+    if (selectedServices.includes('aqualounge')) {
+      total += 300; // $300 for 2-hour Aqua Lounge package
+    }
+    
+    if (selectedServices.includes('tours')) {
+      total += 220; // $220 per hour for guided tours
     }
     
     // Add-on costs
@@ -208,15 +216,15 @@ function BookingScreen() {
     
     return total;
   };
-  
-  /**
+    /**
    * Handles booking confirmation
    * Validates required fields, generates booking reference, and shows confirmation modal
-   */  const handleConfirmBooking = async () => {
+   */  
+  const handleConfirmBooking = async () => {
     console.log('handleConfirmBooking start');
     
-    if (!selectedService) {
-      Alert.alert('Selection Required', 'Please select a service type.');
+    if (selectedServices.length === 0) {
+      Alert.alert('Selection Required', 'Please select at least one service type.');
       return;
     }
     
@@ -250,8 +258,8 @@ function BookingScreen() {
         reference: ref,
         date: selectedDate.toISOString(),
         time: selectedTime.toISOString(),
-        serviceType: selectedService,
-        quantity: selectedService === 'jetski' ? jetSkiCount : 1,
+        serviceTypes: selectedServices,
+        jetSkiQuantity: selectedServices.includes('jetski') ? jetSkiCount : 0,
         addOns: addOns.filter(addon => addon.selected).map(addon => ({
           id: addon.id,
           name: addon.name,
@@ -419,30 +427,28 @@ function BookingScreen() {
         {/* Service Selection Section */}
         <View style={styles.section}>
           <ThemedText type="heading2" style={styles.sectionTitle}>Select Service</ThemedText>
-          <View style={styles.serviceContainer}>
-            <ServiceCard
+          <View style={styles.serviceContainer}>            <ServiceCard
               title="Jet Skis"
               image={require('../assets/images/Jetski-image.webp')}
               onPress={() => handleServiceSelect('jetski')}
-              selected={selectedService === 'jetski'}
+              selected={selectedServices.includes('jetski')}
             />
             <ServiceCard
               title="Aqua Lounge"
               image={require('../assets/images/Aqua-lounge.webp')}
               onPress={() => handleServiceSelect('aqualounge')}
-              selected={selectedService === 'aqualounge'}
+              selected={selectedServices.includes('aqualounge')}
             />
             <ServiceCard
               title="Guided Tours"
               image={require('../assets/images/tours2.png')}
               onPress={() => handleServiceSelect('tours')}
-              selected={selectedService === 'tours'}
+              selected={selectedServices.includes('tours')}
             />
           </View>
         </View>
-        
-        {/* Jet Ski Quantity Selection - Only shown when Jet Ski service is selected */}
-        {selectedService === 'jetski' && (
+          {/* Jet Ski Quantity Selection - Only shown when Jet Ski service is selected */}
+        {selectedServices.includes('jetski') && (
           <View style={styles.section}>
             <ThemedText type="heading2" style={styles.sectionTitle}>Number of Jet Skis</ThemedText>
             <ThemedText style={styles.labelText}>Select how many jet skis you want to book:</ThemedText>
@@ -475,9 +481,8 @@ function BookingScreen() {
             </View>
           </View>
         )}
-        
-        {/* Add-ons Section - Only shown after a service is selected */}
-        {selectedService && (
+          {/* Add-ons Section - Only shown after at least one service is selected */}
+        {selectedServices.length > 0 && (
           <View style={styles.section}>
             <ThemedText type="heading2" style={styles.sectionTitle}>Add-ons</ThemedText>
             <View style={styles.addOnContainer}>
@@ -492,9 +497,8 @@ function BookingScreen() {
             </View>
           </View>
         )}
-        
-        {/* Booking Summary Section - Only shown after a service is selected */}
-        {selectedService && (
+          {/* Booking Summary Section - Only shown after at least one service is selected */}
+        {selectedServices.length > 0 && (
           <View style={styles.section}>
             <ThemedText type="heading2" style={styles.sectionTitle}>Booking Summary</ThemedText>
             <View style={styles.summaryCard}>
@@ -507,13 +511,19 @@ function BookingScreen() {
                 <ThemedText style={styles.summaryLabel}>Time:</ThemedText>
                 <ThemedText style={styles.summaryValue}>{formatTime(selectedTime)}</ThemedText>
               </View>
-              
-              <View style={styles.summaryRow}>
-                <ThemedText style={styles.summaryLabel}>Service:</ThemedText>
-                <ThemedText style={styles.summaryValue}>
-                  {selectedService === 'jetski' ? `Jet Skis (${jetSkiCount})` : 
-                   selectedService === 'aqualounge' ? 'Aqua Lounge' : 'Guided Tour'}
-                </ThemedText>
+                <View style={styles.summaryRow}>
+                <ThemedText style={styles.summaryLabel}>Services:</ThemedText>
+                <View style={styles.summaryServiceList}>
+                  {selectedServices.includes('jetski') && (
+                    <ThemedText style={styles.summaryValue}>Jet Skis ({jetSkiCount})</ThemedText>
+                  )}
+                  {selectedServices.includes('aqualounge') && (
+                    <ThemedText style={styles.summaryValue}>Aqua Lounge</ThemedText>
+                  )}
+                  {selectedServices.includes('tours') && (
+                    <ThemedText style={styles.summaryValue}>Guided Tour</ThemedText>
+                  )}
+                </View>
               </View>
               
               {/* Display selected add-ons in summary */}
@@ -552,11 +562,10 @@ function BookingScreen() {
           </View>
         )}
         
-        {/* Confirm Booking Button */}
-        <TouchableOpacity
+        {/* Confirm Booking Button */}        <TouchableOpacity
           style={[
             styles.confirmButton, 
-            (!selectedService || (!waiverCompleted && !checkingWaiver)) && { opacity: 0.5 }
+            (selectedServices.length === 0 || (!waiverCompleted && !checkingWaiver)) && { opacity: 0.5 }
           ]}
           onPress={() => { console.log('Confirm button pressed'); handleConfirmBooking(); }}
           activeOpacity={0.7}
@@ -682,8 +691,7 @@ function BookingScreen() {
               <ThemedText style={styles.referenceLabel}>Booking Reference:</ThemedText>
               <ThemedText type="heading3" style={styles.referenceNumber}>{bookingReference}</ThemedText>
             </View>
-            
-            {/* Confirmation details */}
+              {/* Confirmation details */}
             <View style={styles.confirmationDetails}>
               <ThemedText style={styles.confirmationDetail}>
                 <Ionicons name="calendar" size={16} color={Colors.light.palette.secondary.main} /> {formatDate(selectedDate)}
@@ -691,6 +699,24 @@ function BookingScreen() {
               <ThemedText style={styles.confirmationDetail}>
                 <Ionicons name="time" size={16} color={Colors.light.palette.secondary.main} /> {formatTime(selectedTime)}
               </ThemedText>
+              
+              {/* Display each selected service */}
+              {selectedServices.includes('jetski') && (
+                <ThemedText style={styles.confirmationDetail}>
+                  <Ionicons name="speedometer" size={16} color={Colors.light.palette.secondary.main} /> Jet Skis: {jetSkiCount}
+                </ThemedText>
+              )}
+              {selectedServices.includes('aqualounge') && (
+                <ThemedText style={styles.confirmationDetail}>
+                  <Ionicons name="boat" size={16} color={Colors.light.palette.secondary.main} /> Aqua Lounge
+                </ThemedText>
+              )}
+              {selectedServices.includes('tours') && (
+                <ThemedText style={styles.confirmationDetail}>
+                  <Ionicons name="map" size={16} color={Colors.light.palette.secondary.main} /> Guided Tour
+                </ThemedText>
+              )}
+              
               <ThemedText style={styles.confirmationDetail}>
                 <Ionicons name="cash" size={16} color={Colors.light.palette.secondary.main} /> Total: ${calculateTotal()}
               </ThemedText>
@@ -909,12 +935,15 @@ const styles = StyleSheet.create({
     fontWeight: '600', // Increased from 500 to 600
     fontSize: 16,
     color: Colors.light.palette.neutral[900],
-  },
-  summaryValue: {
+  },  summaryValue: {
     textAlign: 'right',
     fontSize: 16,
     fontWeight: '600', // Increased from 500 to 600
     color: Colors.light.palette.neutral[800],
+  },
+  summaryServiceList: {
+    flex: 1,
+    alignItems: 'flex-end',
   },
   summaryAddon: {
     flexDirection: 'row',
