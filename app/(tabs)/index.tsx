@@ -239,7 +239,9 @@ export default function HomeScreen() {
         style={styles.scrollView} 
         contentContainerStyle={styles.scrollViewContent}
       >
-        <ThemedView style={styles.container}>          {/* Enhanced About Us Button with Image */}          <TouchableOpacity style={styles.aboutUsButton} onPress={handleAboutUs}>
+        <ThemedView style={styles.container}>
+          {/* Enhanced About Us Button with Image */}
+          <TouchableOpacity style={styles.aboutUsButton} onPress={handleAboutUs}>
             <Image 
               source={require('../../app/About-us -2.webp')}
               style={styles.aboutUsImage}
@@ -259,28 +261,28 @@ export default function HomeScreen() {
           <View style={styles.actionButtonsWrapper}>
             <TouchableOpacity style={styles.actionButton} onPress={handleWaiver}>
               <View style={styles.buttonIconPlaceholder}>
-                <ThemedText style={styles.buttonIcon}>🏄</ThemedText>
+                <Ionicons name="document-text-outline" size={26} color="#ffffff" />
               </View>
               <ThemedText style={styles.actionButtonText}>Waiver</ThemedText>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.actionButton} onPress={handleAiAssist}>
               <View style={styles.buttonIconPlaceholder}>
-                <ThemedText style={styles.buttonIcon}>🤖</ThemedText>
+                <Ionicons name="chatbubble-ellipses-outline" size={26} color="#ffffff" />
               </View>
               <ThemedText style={styles.actionButtonText}>AI Assistant</ThemedText>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.actionButton} onPress={handleBooking}>
               <View style={styles.buttonIconPlaceholder}>
-                <ThemedText style={styles.buttonIcon}>📅</ThemedText>
+                <Ionicons name="calendar-outline" size={26} color="#ffffff" />
               </View>
               <ThemedText style={styles.actionButtonText}>Book Now</ThemedText>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.actionButton} onPress={handleMyAccount}>
               <View style={styles.buttonIconPlaceholder}>
-                <ThemedText style={styles.buttonIcon}>👤</ThemedText>
+                <Ionicons name="person-outline" size={26} color="#ffffff" />
               </View>
               <ThemedText style={styles.actionButtonText}>My Account</ThemedText>
             </TouchableOpacity>
@@ -720,3 +722,33 @@ const styles = StyleSheet.create({
     backgroundColor: '#52D6E2',
   },
 });
+
+// Add this debugging function at the top of your file
+function wrapTextWithTextComponent(children: React.ReactNode): React.ReactNode {
+  if (typeof children === 'string') {
+    // Log for debugging - you can remove this later
+    console.log('Found direct text string:', children);
+    return <ThemedText>{children}</ThemedText>;
+  }
+  
+  if (React.isValidElement(children)) {
+    if (children.props.children) {
+      const wrappedChildren = React.Children.map(children.props.children, child => 
+        wrapTextWithTextComponent(child)
+      );
+      return React.cloneElement(children, {}, wrappedChildren);
+    }
+    return children;
+  }
+  
+  if (Array.isArray(children)) {
+    return children.map(child => wrapTextWithTextComponent(child));
+  }
+  
+  return children;
+}
+
+// Then modify your ThemedView usage in your render function:
+<ThemedView style={styles.container}>
+  {wrapTextWithTextComponent(/* your existing children */)}
+</ThemedView>

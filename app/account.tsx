@@ -342,15 +342,15 @@ function AccountPage() {
   return (
     <ThemedView
       style={styles.container}
-      lightColor={Colors.light.palette.primary.light}
-      darkColor={Colors.dark.palette.primary.light}
+      lightColor="#52D6E2" // Changed to match the app's main teal color
+      darkColor="#52D6E2" // Same for dark mode for consistency
     >
       <Stack.Screen options={{ 
         title: 'My Account',
         headerStyle: {
-          backgroundColor: '#ffffff', // changed to white header
+          backgroundColor: '#ffffff', // Changed to white
         },
-        headerTintColor: '#000000', // changed tint to black
+        headerTintColor: '#21655A', // Changed to teal to match the app's color scheme
         headerTitleStyle: {
           fontWeight: 'bold',
         },
@@ -519,9 +519,11 @@ const windowWidth = Dimensions.get('window').width;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#52D6E2', // Explicitly set the background color
   },
   scrollView: {
     flex: 1,
+    backgroundColor: '#52D6E2', // Added explicit background color
   },
   scrollContent: {
     flexGrow: 1,
