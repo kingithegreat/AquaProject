@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { StyleSheet, ScrollView, TouchableOpacity, View, Image, Dimensions, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router, useFocusEffect } from 'expo-router';
@@ -7,6 +7,7 @@ import { Asset } from 'expo-asset';
 import { StatusBar } from 'expo-status-bar';
 import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
+import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -79,12 +80,38 @@ interface Review {
   createdAt?: Date;
 }
 
-export default function HomeScreen() {
+export default function HomeScreen() {  
   const { user, logout, loading } = useAuth();
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [reviewsError, setReviewsError] = useState<string | null>(null);
+  const videoRef = useRef<Video>(null);
+  const [videoStatus, setVideoStatus] = useState<AVPlaybackStatus>({} as AVPlaybackStatus);
+  const [videoError, setVideoError] = useState<boolean>(false);
+  
+  // Video play/pause toggle function
+  const toggleVideoPlayback = async () => {
+    if (videoRef.current) {
+      try {
+        const status = await videoRef.current.getStatusAsync();
+        if (status.isLoaded && status.isPlaying) {
+          await videoRef.current.pauseAsync();
+        } else {
+          await videoRef.current.playAsync();
+        }
+      } catch (error) {
+        console.error('Error toggling video playback:', error);
+        setVideoError(true);
+      }
+    }
+  };
+  
+  // Handle video playback errors
+  const handleVideoError = () => {
+    console.error('Video playback error occurred');
+    setVideoError(true);
+  };
   
   // Function to fetch reviews from Firestore
   const fetchReviews = async () => {
@@ -134,6 +161,21 @@ export default function HomeScreen() {
   // Fetch reviews from Firestore
   useEffect(() => {
     fetchReviews();
+  }, []);
+  
+  // Auto-play video when component mounts
+  useEffect(() => {
+    if (videoRef.current) {
+      // Auto-play the video when component mounts
+      videoRef.current.playAsync();
+    }
+    
+    return () => {
+      // Cleanup on unmount
+      if (videoRef.current) {
+        videoRef.current.unloadAsync();
+      }
+    };
   }, []);
   
   // Reset image loading state when screen gains focus
@@ -241,12 +283,27 @@ export default function HomeScreen() {
       >
         <ThemedView style={styles.container}>
           {/* Enhanced About Us Button with Image */}
-          <TouchableOpacity style={styles.aboutUsButton} onPress={handleAboutUs}>
-            <Image 
-              source={require('../../app/About-us -2.webp')}
+          <TouchableOpacity style={styles.aboutUsButton} onPress={handleAboutUs}>            <Video
+              ref={videoRef}
               style={styles.aboutUsImage}
-              resizeMode="cover"
-            />
+              source={require('../../assets/video/Biscuit-ride.mp4')}
+              resizeMode={ResizeMode.COVER}
+              isLooping
+              shouldPlay
+              isMuted={true}
+              onPlaybackStatusUpdate={status => setVideoStatus(() => status)}
+              onError={() => setVideoError(true)}
+            />            {videoError ? (
+              <Image 
+                source={require('../../assets/images/about-us-image.webp')}
+                style={styles.aboutUsImage}
+                resizeMode="cover"
+              />
+            ) : videoStatus && !('isLoaded' in videoStatus && videoStatus.isLoaded) && (
+              <View style={styles.videoLoadingOverlay}>
+                <ActivityIndicator size="large" color="#ffffff" />
+              </View>
+            )}
             <GlassBackground style={styles.aboutUsTextContainer} intensity={40}>
               <ThemedText style={styles.aboutUsButtonText}>About Us</ThemedText>
             </GlassBackground>
@@ -254,7 +311,19 @@ export default function HomeScreen() {
               source={require('../../assets/images/aqua-360-logo.png')}
               style={styles.logoCorner}
               resizeMode="contain"
-            />
+            />            {/* Play/Pause Button Overlay */}
+            {!videoError && (
+              <TouchableOpacity 
+                style={styles.videoControlButton}
+                onPress={toggleVideoPlayback}
+              >
+                <Ionicons 
+                  name={'isLoaded' in videoStatus && videoStatus.isLoaded && videoStatus.isPlaying ? "pause" : "play"} 
+                  size={30} 
+                  color="white" 
+                />
+              </TouchableOpacity>
+            )}
           </TouchableOpacity>
 
           {/* Action Buttons Section - Modern buttons without container */}
@@ -514,9 +583,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#21655A', // Add background color in case image doesn't load
   },  aboutUsImage: {
     width: '100%',
-    height: '140%', // Significantly increased height to show entire image
+    height: '100%',
     position: 'absolute',
-    top: '-20%', // Move up enough to focus on faces and eliminate green background
+    top: 0,
+    left: 0,
   },
   aboutUsTextContainer: {
     paddingVertical: 14,  // Increased from 10 to give more vertical space
@@ -721,34 +791,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#52D6E2',
   },
+  videoLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoControlButton: {
+    position: 'absolute',
+    bottom: 70, // Position it above the text
+    right: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
 
-// Add this debugging function at the top of your file
-function wrapTextWithTextComponent(children: React.ReactNode): React.ReactNode {
-  if (typeof children === 'string') {
-    // Log for debugging - you can remove this later
-    console.log('Found direct text string:', children);
-    return <ThemedText>{children}</ThemedText>;
-  }
-  
-  if (React.isValidElement(children)) {
-    if (children.props.children) {
-      const wrappedChildren = React.Children.map(children.props.children, child => 
-        wrapTextWithTextComponent(child)
-      );
-      return React.cloneElement(children, {}, wrappedChildren);
-    }
-    return children;
-  }
-  
-  if (Array.isArray(children)) {
-    return children.map(child => wrapTextWithTextComponent(child));
-  }
-  
-  return children;
-}
 
-// Then modify your ThemedView usage in your render function:
-<ThemedView style={styles.container}>
-  {wrapTextWithTextComponent(/* your existing children */)}
-</ThemedView>

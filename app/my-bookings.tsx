@@ -22,10 +22,27 @@ import { useAuth } from '@/hooks/useAuth';
 import { db, checkOnlineStatus, addToOfflineQueue } from '@/config/firebase';
 import { ThemedText } from '@/components/ThemedText';
 
+// Define Booking interface
+interface Booking {
+  id: string;
+  userId: string;
+  createdAt: Date | string | any;
+  serviceType: string;
+  quantity: number;
+  totalAmount: number;
+  date: string;
+  time: string;
+  status: string;
+  reference?: string;
+  notes?: string;
+  isLocal?: boolean;
+  addOns?: Array<{id: string | number, name: string, price: number}>;
+}
+
 function MyBookingsScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const [bookings, setBookings] = useState([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
@@ -255,9 +272,8 @@ function MyBookingsScreen() {
                   <Ionicons name="add" size={20} color="#fff" />
                   <ThemedText style={styles.newBookingButtonText}>New Booking</ThemedText>
                 </TouchableOpacity>
-              </View>
-
-              {bookings.map((booking) => (                <View key={booking.id} style={styles.bookingCard}>
+              </View>              {bookings.map((booking) => (
+                <View key={booking.id} style={styles.bookingCard}>
                   <View style={styles.bookingCardHeader}>
                     <View style={{backgroundColor: 'white', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4}}>
                       <Text
@@ -293,8 +309,7 @@ function MyBookingsScreen() {
                         Total: ${booking.totalAmount}
                       </ThemedText>
                     </View>
-                    
-                    {booking.addOns?.length > 0 && (
+                      {booking.addOns && booking.addOns.length > 0 && (
                       <View style={styles.addOnsContainer}>
                         <ThemedText style={styles.addOnsHeader}>Add-ons:</ThemedText>
                         {booking.addOns.map((addon) => (
@@ -305,18 +320,16 @@ function MyBookingsScreen() {
                       </View>
                     )}
                   </View>
-                    <View style={styles.referenceContainer}>
-                    <ThemedText style={styles.referenceLabel}>
+                    <View style={styles.referenceContainer}>                    <ThemedText style={styles.referenceLabel}>
                       Booking Reference:
                     </ThemedText>
                     <ThemedText style={styles.referenceNumber}>
-                      {booking.reference}
+                      {booking.reference || 'N/A'}
                     </ThemedText>
                   </View>
-                  
-                  <View style={[styles.statusBadge, styles.statusBadgeBottom]}>
+                    <View style={[styles.statusBadge, styles.statusBadgeBottom]}>
                     <ThemedText style={[styles.statusText, { color: '#000' }]}>
-                      {booking.status.toUpperCase()}
+                      {booking.status ? booking.status.toUpperCase() : 'PENDING'}
                     </ThemedText>
                   </View>
                 </View>

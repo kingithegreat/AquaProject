@@ -355,7 +355,9 @@ function BookingScreen() {
       onPress={onPress}
     >
       <Image source={image} style={styles.serviceImage} />
-      <ThemedText style={styles.serviceTitle}>{title}</ThemedText>
+      <ThemedText style={[styles.serviceTitle, {color: '#21655A'}]}>
+        {title}
+      </ThemedText>
     </TouchableOpacity>
   );
   
@@ -774,12 +776,22 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 80,
     borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,  },  serviceTitle: {
-    padding: 8,
-    textAlign: 'center',
-    fontWeight: '700', // Increased from 600 to 700 for better visibility
+    borderTopRightRadius: 10,  },
+  serviceTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#21655A', // Change from white to the app's teal color
+    marginBottom: 4,
+  },
+  serviceDescription: {
+    fontSize: 14,
+    color: '#333333', // Change from white to dark gray
+    marginBottom: 8,
+  },
+  servicePrice: {
     fontSize: 16,
-    color: '#ffffff' // Changed to white for consistency with other pages
+    fontWeight: '600',
+    color: '#21655A', // Change from white to the app's teal color
   },
   quantitySelector: {
     flexDirection: 'row',

@@ -338,19 +338,15 @@ function AccountPage() {
       return 'Error formatting date';
     }
   };
-
-  return (
-    <ThemedView
+  return (    <ThemedView
       style={styles.container}
-      lightColor="#52D6E2" // Changed to match the app's main teal color
-      darkColor="#52D6E2" // Same for dark mode for consistency
     >
       <Stack.Screen options={{ 
         title: 'My Account',
         headerStyle: {
-          backgroundColor: '#ffffff', // Changed to white
+          backgroundColor: '#000000', // Changed to black to match other headers
         },
-        headerTintColor: '#21655A', // Changed to teal to match the app's color scheme
+        headerTintColor: '#FFFFFF', // Changed to white for better contrast on black
         headerTitleStyle: {
           fontWeight: 'bold',
         },
@@ -519,11 +515,11 @@ const windowWidth = Dimensions.get('window').width;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#52D6E2', // Explicitly set the background color
+    backgroundColor: '#ffffff', // Changed from #52D6E2 to white
   },
   scrollView: {
     flex: 1,
-    backgroundColor: '#52D6E2', // Added explicit background color
+    backgroundColor: '#ffffff', // Changed from #52D6E2 to white
   },
   scrollContent: {
     flexGrow: 1,

@@ -12,10 +12,10 @@
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#52D6E2"
-    },
-    "assetBundlePatterns": [
+    },    "assetBundlePatterns": [
       "assets/images/*",
-      "assets/fonts/*"
+      "assets/fonts/*",
+      "assets/video/*"
     ],
     "ios": {
       "supportsTablet": true
