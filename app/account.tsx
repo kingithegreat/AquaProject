@@ -358,13 +358,12 @@ function AccountPage() {
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Profile Section */}
-        <View style={styles.profileSection}>
-          <View style={styles.profileImageContainer}>
-            <View style={styles.profileImagePlaceholder}>
-              <ThemedText style={styles.profileInitial}>
-                {user?.email?.[0]?.toUpperCase() || 'A'}
-              </ThemedText>
-            </View>
+        <View style={styles.profileSection}>          <View style={styles.profileImageContainer}>
+            <Image 
+              source={require('../assets/images/aqua-360-logo.png')} 
+              style={styles.profileImage}
+              resizeMode="contain"
+            />
           </View>
           
           <ThemedText style={styles.userEmail}>{user?.email || 'Guest'}</ThemedText>
@@ -540,26 +539,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-  },
-  profileImageContainer: {
+  },  profileImageContainer: {
     marginBottom: 16,
-  },  profileImagePlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#21655A',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingBottom: 4, // Add padding at bottom to visually center text
-  },
-  profileInitial: {
-    color: '#fff',
-    fontSize: 40,
-    fontWeight: 'bold',
-    lineHeight: 48, // Ensure proper line height for the character
-    includeFontPadding: false, // Remove default font padding
-    textAlignVertical: 'center', // Ensure vertical alignment
-  },
+  },  profileImage: {
+    width: 150,
+    height: 150,
+    borderRadius: 10, // Slightly rounded corners for the logo
+  },// Profile placeholder styles removed as we're using logo image now
   userEmail: {
     fontSize: 18,
     fontWeight: '600',

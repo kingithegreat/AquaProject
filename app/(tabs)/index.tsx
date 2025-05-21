@@ -239,8 +239,7 @@ export default function HomeScreen() {
         style={styles.scrollView} 
         contentContainerStyle={styles.scrollViewContent}
       >
-        <ThemedView style={styles.container}>
-          {/* Enhanced About Us Button with Image */}
+        <ThemedView style={styles.container}>          {/* Enhanced About Us Button with Image */}
           <TouchableOpacity style={styles.aboutUsButton} onPress={handleAboutUs}>
             <Image 
               source={require('../../assets/images/about-us-image.webp')}
@@ -249,6 +248,11 @@ export default function HomeScreen() {
             <GlassBackground style={styles.aboutUsTextContainer} intensity={40}>
               <ThemedText style={styles.aboutUsButtonText}>About Us</ThemedText>
             </GlassBackground>
+            <Image 
+              source={require('../../assets/images/aqua-360-logo.png')}
+              style={styles.logoCorner}
+              resizeMode="contain"
+            />
           </TouchableOpacity>
 
           {/* Action Buttons Section - Modern buttons without container */}
@@ -521,8 +525,7 @@ const styles = StyleSheet.create({
     minHeight: 60,  // Added minimum height to ensure text has enough space
     justifyContent: 'center',  // Center text vertically
     alignItems: 'center',  // Center text horizontally
-  },
-  aboutUsButtonText: {
+  },  aboutUsButtonText: {
     color: '#ffffff',
     fontSize: 30,
     fontWeight: 'bold',
@@ -532,6 +535,16 @@ const styles = StyleSheet.create({
     lineHeight: 36,  // Added line height to ensure proper text rendering
     includeFontPadding: false,  // Prevents Android from cutting off top of text
     textAlignVertical: 'center',  // Ensures text is centered vertically (Android)
+  },
+  logoCorner: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    padding: 5,
   },
   // New styles for action button layout
   actionButtonsWrapper: {

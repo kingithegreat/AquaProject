@@ -10,7 +10,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState, useCallback } from 'react';
 import 'react-native-reanimated';
-import { View, ActivityIndicator, StyleSheet, LogBox, Alert, Platform } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, LogBox, Alert, Platform, Image } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
@@ -102,11 +102,15 @@ export default function RootLayout() {
     }
 
     prepare();
-  }, [loaded, error]);
-  if (!isLoadingComplete) {
+  }, [loaded, error]);  if (!isLoadingComplete) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#21655A" />
+        <Image 
+          source={require('../assets/images/aqua-360-logo.png')} 
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
+        <ActivityIndicator size="large" color="#21655A" style={styles.loader} />
         <ThemedText style={styles.loadingText}>Loading Aqua 360°...</ThemedText>
       </View>
     );
@@ -150,6 +154,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#fff'
+  },
+  logoImage: {
+    width: 180,
+    height: 180,
+    marginBottom: 20,
+  },
+  loader: {
+    marginVertical: 15,
   },
   loadingText: {
     marginTop: 10,
