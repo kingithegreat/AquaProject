@@ -759,13 +759,14 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
-  },
-  // Waiver Status Section Styles
+  },  // Waiver Status Section Styles
   waiverStatusSection: {
     backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 16,
+    marginTop: 20,
     marginBottom: 20,
+    marginHorizontal: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
