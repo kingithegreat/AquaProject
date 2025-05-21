@@ -201,10 +201,9 @@ export default function HomeScreen() {
       </SafeAreaView>
     );
   }
-  
-  return (
+    return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <StatusBar style="dark" backgroundColor="#000000" />
+      <StatusBar style="light" backgroundColor="#21655A" />
       <Stack.Screen options={{ headerShown: false }} />
       {/* Header Section - no rounded borders */}
       <GlassBackground style={styles.header} intensity={80} noRadius={true}>

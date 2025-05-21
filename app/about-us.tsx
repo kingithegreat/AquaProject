@@ -181,9 +181,12 @@ export default function AboutUsScreen() {
   const handleServicePress = (service: Service) => {
     setSelectedService(service);
   };
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#52D6E2' }}>
+      <StatusBar 
+        barStyle="light-content" 
+        backgroundColor="#21655A"
+      />
       <ScrollView
         style={{ flex: 1, backgroundColor: '#52D6E2' }}
         contentContainerStyle={styles.container}

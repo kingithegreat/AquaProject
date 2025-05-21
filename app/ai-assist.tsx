@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, SafeAreaView, TouchableOpacity, Platform, TextInput, ActivityIndicator, KeyboardAvoidingView } from 'react-native';
+import { StyleSheet, View, SafeAreaView, TouchableOpacity, Platform, TextInput, ActivityIndicator, KeyboardAvoidingView, StatusBar } from 'react-native';
 import { router } from 'expo-router';
 import { BlurView } from 'expo-blur';
 
@@ -82,9 +82,12 @@ export default function AIAssistScreen() {
   const navigateToBooking = () => {
     router.push('/booking');
   };
-
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar 
+        barStyle="light-content" 
+        backgroundColor="#21655A"
+      />
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
