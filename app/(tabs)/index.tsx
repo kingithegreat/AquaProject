@@ -391,14 +391,16 @@ export default function HomeScreen() {
                 ))}
               </ScrollView>
             )}
-            
-            <TouchableOpacity 
+              <TouchableOpacity 
               style={styles.seeAllReviewsButton}
               onPress={handleSeeAllReviews}
             >
-              <ThemedText style={styles.seeAllReviewsText}>
-                See all customer reviews
-              </ThemedText>
+              <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                <Ionicons name="star-half-outline" size={18} color="#ffffff" style={styles.reviewButtonIcon} />
+                <ThemedText style={styles.seeAllReviewsText}>
+                  Reviews & Share Experience
+                </ThemedText>
+              </View>
             </TouchableOpacity>
           </ThemedView>
           
@@ -693,11 +695,10 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 16,
     textAlign: 'center',
-  },
-  seeAllReviewsButton: {
+  },  seeAllReviewsButton: {
     backgroundColor: '#21655A',
     paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     borderRadius: 25,
     alignSelf: 'center',
     marginTop: 15,
@@ -713,6 +714,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  reviewButtonIcon: {
+    marginRight: 8,
   },
   reviewsCarousel: {
     width: '100%',
