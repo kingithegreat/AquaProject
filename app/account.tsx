@@ -541,7 +541,8 @@ const styles = StyleSheet.create({
     elevation: 3,
   },  profileImageContainer: {
     marginBottom: 16,
-  },  profileImage: {
+    marginTop: 30, // Increased top margin to further shift the image down
+  },profileImage: {
     width: 150,
     height: 150,
     borderRadius: 10, // Slightly rounded corners for the logo

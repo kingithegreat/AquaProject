@@ -239,11 +239,11 @@ export default function HomeScreen() {
         style={styles.scrollView} 
         contentContainerStyle={styles.scrollViewContent}
       >
-        <ThemedView style={styles.container}>          {/* Enhanced About Us Button with Image */}
-          <TouchableOpacity style={styles.aboutUsButton} onPress={handleAboutUs}>
+        <ThemedView style={styles.container}>          {/* Enhanced About Us Button with Image */}          <TouchableOpacity style={styles.aboutUsButton} onPress={handleAboutUs}>
             <Image 
-              source={require('../../assets/images/about-us-image.webp')}
+              source={require('../../app/About-us -2.webp')}
               style={styles.aboutUsImage}
+              resizeMode="cover"
             />
             <GlassBackground style={styles.aboutUsTextContainer} intensity={40}>
               <ThemedText style={styles.aboutUsButtonText}>About Us</ThemedText>
@@ -507,16 +507,14 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
-    shadowRadius: 5,
-    overflow: 'hidden',
+    shadowRadius: 5,    overflow: 'hidden',
     position: 'relative',
     backgroundColor: '#21655A', // Add background color in case image doesn't load
-  },
-  aboutUsImage: {
+  },  aboutUsImage: {
     width: '100%',
-    height: '100%',
+    height: '140%', // Significantly increased height to show entire image
     position: 'absolute',
-    resizeMode: 'cover', // Move resizeMode here from the style
+    top: '-20%', // Move up enough to focus on faces and eliminate green background
   },
   aboutUsTextContainer: {
     paddingVertical: 14,  // Increased from 10 to give more vertical space
@@ -538,11 +536,11 @@ const styles = StyleSheet.create({
   },
   logoCorner: {
     position: 'absolute',
-    bottom: 10,
-    right: 10,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    top: 10, // Changed from bottom to top
+    left: 10, // Keep at left
+    width: 80, // Made slightly smaller (from 110)
+    height: 80, // Made slightly smaller (from 110)
+    borderRadius: 10, // Changed to smaller radius for square appearance
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
     padding: 5,
   },
