@@ -13,7 +13,7 @@ import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
 
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
@@ -46,6 +46,10 @@ function BookingScreen() {
   const router = useRouter();
   const { user } = useAuth();
   
+  // State for tracking waiver completion status
+  const [waiverCompleted, setWaiverCompleted] = useState(false);
+  const [checkingWaiver, setCheckingWaiver] = useState(true);
+  
   // State for date and time selection
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState(new Date());
@@ -68,9 +72,37 @@ function BookingScreen() {
   
   // State for confirmation modal visibility
   const [showConfirmation, setShowConfirmation] = useState(false);
-  
-  // State to store the generated booking reference number
+    // State to store the generated booking reference number
   const [bookingReference, setBookingReference] = useState('');
+  
+  // Check waiver completion status when component loads
+  useEffect(() => {
+    const checkWaiverStatus = async () => {
+      if (!user) {
+        setCheckingWaiver(false);
+        return;
+      }
+      
+      try {
+        // Check if user profile document exists and has waiver completed
+        const userProfileRef = doc(db, 'userProfiles', user.uid);
+        const userProfileSnap = await getDoc(userProfileRef);
+        
+        if (userProfileSnap.exists() && userProfileSnap.data().waiverCompleted) {
+          setWaiverCompleted(true);
+        } else {
+          setWaiverCompleted(false);
+        }
+      } catch (error) {
+        console.error('Error checking waiver status:', error);
+        setWaiverCompleted(false);
+      } finally {
+        setCheckingWaiver(false);
+      }
+    };
+
+    checkWaiverStatus();
+  }, [user]);
   
   /**
    * Helper function to format date in a user-friendly way
@@ -180,8 +212,7 @@ function BookingScreen() {
   /**
    * Handles booking confirmation
    * Validates required fields, generates booking reference, and shows confirmation modal
-   */
-  const handleConfirmBooking = async () => {
+   */  const handleConfirmBooking = async () => {
     console.log('handleConfirmBooking start');
     
     if (!selectedService) {
@@ -191,6 +222,19 @@ function BookingScreen() {
     
     if (!user || !user.uid) {
       Alert.alert('Authentication Error', 'Please log in again before booking.');
+      return;
+    }
+    
+    // Check if waiver has been completed
+    if (!waiverCompleted) {
+      Alert.alert(
+        'Waiver Required',
+        'You must complete the waiver agreement before booking any activities.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Complete Waiver', onPress: () => router.push('/waiver') }
+        ]
+      );
       return;
     }
     
@@ -493,10 +537,25 @@ function BookingScreen() {
             </View>
           </View>
         )}
+          {/* Waiver Required Message - Only show when not loading and waiver not completed */}
+        {!checkingWaiver && !waiverCompleted && (
+          <View style={styles.waiverWarning}>
+            <Ionicons name="warning-outline" size={20} color="#f44336" />
+            <ThemedText style={styles.waiverWarningText}>
+              Waiver completion required before booking
+            </ThemedText>
+            <TouchableOpacity onPress={() => router.push('/waiver')}>
+              <ThemedText style={styles.waiverLinkText}>Complete Waiver</ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
         
         {/* Confirm Booking Button */}
         <TouchableOpacity
-          style={[styles.confirmButton, !selectedService && { opacity: 0.5 }]}
+          style={[
+            styles.confirmButton, 
+            (!selectedService || (!waiverCompleted && !checkingWaiver)) && { opacity: 0.5 }
+          ]}
           onPress={() => { console.log('Confirm button pressed'); handleConfirmBooking(); }}
           activeOpacity={0.7}
         >
@@ -974,11 +1033,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 36,
     paddingVertical: 12,
     borderRadius: 8,
-  },
-  doneButtonText: {
+  },  doneButtonText: {
     color: Colors.light.palette.primary.contrast,
     fontWeight: '600',
     fontSize: 16,
+  },
+  waiverWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(244, 67, 54, 0.1)',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    flexWrap: 'wrap',
+  },
+  waiverWarningText: {
+    color: '#f44336',
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: '500',
+    flex: 1,
+  },
+  waiverLinkText: {
+    color: '#0066cc',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+    marginLeft: 8,
   },
 });
 

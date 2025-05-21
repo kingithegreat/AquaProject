@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, View, Image, Dimensions, Alert } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db, syncOfflineData } from '@/config/firebase';
 import { format } from 'date-fns';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -40,6 +40,10 @@ function AccountPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0); // Used to force re-render
+  const [waiverCompleted, setWaiverCompleted] = useState(false);
+  const [waiverLoading, setWaiverLoading] = useState(true);
+  const [waiverCompletedDate, setWaiverCompletedDate] = useState<string | null>(null);
+  
   // Fetch both local and remote bookings and trigger sync if needed
   useEffect(() => {
     const fetchAllBookings = async () => {
@@ -255,7 +259,6 @@ function AccountPage() {
   const handleRefresh = () => {
     setRefreshKey(prevKey => prevKey + 1);
   };
-
   // Handle user logout
   const handleLogout = async () => {
     try {
@@ -266,6 +269,38 @@ function AccountPage() {
       Alert.alert('Logout Error', 'There was a problem logging out. Please try again.');
     }
   };
+
+  // Fetch waiver status
+  useEffect(() => {
+    const fetchWaiverStatus = async () => {
+      if (!user) {
+        setWaiverLoading(false);
+        return;
+      }
+      
+      try {
+        const userProfileRef = doc(db, 'userProfiles', user.uid);
+        const userProfileSnap = await getDoc(userProfileRef);
+        
+        if (userProfileSnap.exists()) {
+          const userData = userProfileSnap.data();
+          setWaiverCompleted(userData.waiverCompleted || false);
+          setWaiverCompletedDate(userData.waiverCompletedAt || null);
+        } else {
+          setWaiverCompleted(false);
+          setWaiverCompletedDate(null);
+        }
+      } catch (error) {
+        console.error('Error fetching waiver status:', error);
+        setWaiverCompleted(false);
+        setWaiverCompletedDate(null);
+      } finally {
+        setWaiverLoading(false);
+      }
+    };
+    
+    fetchWaiverStatus();
+  }, [user]);
 
   // Navigate to make a new booking
   const handleNewBooking = () => {
@@ -341,8 +376,47 @@ function AccountPage() {
             
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
               <ThemedText style={styles.logoutButtonText}>Sign Out</ThemedText>
-            </TouchableOpacity>
-          </View>
+            </TouchableOpacity>          </View>
+        </View>
+
+        {/* Waiver Status Section */}
+        <View style={styles.waiverStatusSection}>
+          <ThemedText style={styles.waiverStatusTitle}>Safety Waiver Status</ThemedText>
+          
+          {waiverLoading ? (
+            <ActivityIndicator size="small" color="#21655A" style={styles.smallLoader} />
+          ) : (
+            <View style={styles.waiverStatusContent}>
+              <View style={[
+                styles.waiverStatusBadge,
+                waiverCompleted ? styles.waiverCompletedBadge : styles.waiverPendingBadge
+              ]}>
+                <Ionicons 
+                  name={waiverCompleted ? "checkmark-circle" : "alert-circle"} 
+                  size={20} 
+                  color={waiverCompleted ? "#ffffff" : "#ffffff"} 
+                />
+                <ThemedText style={styles.waiverStatusText}>
+                  {waiverCompleted ? "Waiver Completed" : "Waiver Not Completed"}
+                </ThemedText>
+              </View>
+              
+              {waiverCompleted && waiverCompletedDate && (
+                <ThemedText style={styles.waiverCompletedDate}>
+                  Completed on: {new Date(waiverCompletedDate).toLocaleDateString()}
+                </ThemedText>
+              )}
+              
+              {!waiverCompleted && (
+                <TouchableOpacity 
+                  style={styles.completeWaiverButton}
+                  onPress={() => router.push('/waiver')}
+                >
+                  <ThemedText style={styles.completeWaiverButtonText}>Complete Waiver</ThemedText>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
         </View>
 
         {/* Divider */}
@@ -681,10 +755,69 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
-  },
-  newBookingButtonText: {
+  },  newBookingButtonText: {
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
+  },
+  // Waiver Status Section Styles
+  waiverStatusSection: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  waiverStatusTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#21655A',
+    marginBottom: 12,
+  },
+  waiverStatusContent: {
+    alignItems: 'center',
+  },
+  waiverStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginBottom: 12,
+  },
+  waiverCompletedBadge: {
+    backgroundColor: '#2ecc71',
+  },
+  waiverPendingBadge: {
+    backgroundColor: '#f39c12',
+  },
+  waiverStatusText: {
+    color: '#ffffff',
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  waiverCompletedDate: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 12,
+  },
+  completeWaiverButton: {
+    backgroundColor: '#21655A',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  completeWaiverButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  smallLoader: {
+    marginVertical: 10,
   },
 });

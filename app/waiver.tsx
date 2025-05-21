@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
-import { StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, View, Platform, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, View, Platform, Dimensions, Alert, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { Checkbox } from 'expo-checkbox';
 import { Ionicons } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useThemeColor } from '@/hooks/useThemeColor';
+import { useAuth } from '@/hooks/useAuth';
+import { db } from '@/config/firebase';
 
 // Glass effect component similar to about-us page
 interface GlassBackgroundProps {
@@ -66,16 +70,115 @@ function GlassBackground({ style, intensity = 50, children, noRadius = false, so
 
 export default function WaiverScreen() {
   const [isChecked, setIsChecked] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [waiverStatus, setWaiverStatus] = useState<'none' | 'completed'>('none');
+  const { user } = useAuth();
   const tintColor = useThemeColor({}, 'tint');
   const textColor = useThemeColor({}, 'text');
 
   // Convert tintColor to string to fix type error
   const checkboxColor = typeof tintColor === 'string' ? tintColor : '#005662';
 
-  const handleConfirm = () => {
-    if (isChecked) {
-      // Navigate back to home
-      router.push('/');
+  // Check if user has already completed waiver
+  useEffect(() => {
+    const checkWaiverStatus = async () => {
+      if (!user) return;
+      
+      try {
+        // Check if user profile document exists
+        const userProfileRef = doc(db, 'userProfiles', user.uid);
+        const userProfileSnap = await getDoc(userProfileRef);
+        
+        if (userProfileSnap.exists() && userProfileSnap.data().waiverCompleted) {
+          setWaiverStatus('completed');
+          Alert.alert(
+            'Waiver Already Completed',
+            'You have already completed the waiver agreement.',
+            [{ text: 'OK', onPress: () => router.push('/') }]
+          );
+        }
+      } catch (error) {
+        console.error('Error checking waiver status:', error);
+      }
+    };
+
+    checkWaiverStatus();
+  }, [user]);
+
+  const saveWaiverCompletion = async () => {
+    if (!user) return false;
+    
+    try {
+      // Create or update user profile document with waiver completion
+      const userProfileRef = doc(db, 'userProfiles', user.uid);
+      
+      // Check if document exists first
+      const userProfileSnap = await getDoc(userProfileRef);
+      
+      if (userProfileSnap.exists()) {
+        // Update existing profile
+        await setDoc(userProfileRef, {
+          ...userProfileSnap.data(),
+          waiverCompleted: true,
+          waiverCompletedAt: new Date().toISOString()
+        }, { merge: true });
+      } else {
+        // Create new profile
+        await setDoc(userProfileRef, {
+          userId: user.uid,
+          email: user.email,
+          waiverCompleted: true,
+          waiverCompletedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString()
+        });
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error saving waiver completion:', error);
+      return false;
+    }
+  };
+
+  const handleConfirm = async () => {
+    if (!isChecked || isSubmitting) return;
+    
+    if (!user) {
+      Alert.alert(
+        'Authentication Required',
+        'Please log in to complete the waiver agreement.',
+        [{ text: 'Login', onPress: () => router.push('/login') }]
+      );
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      const success = await saveWaiverCompletion();
+      
+      if (success) {
+        Alert.alert(
+          'Waiver Completed',
+          'Thank you for completing the waiver agreement. You can now proceed with booking activities.',
+          [{ text: 'Continue', onPress: () => router.push('/') }]
+        );
+      } else {
+        Alert.alert(
+          'Error',
+          'There was a problem saving your waiver agreement. Please try again.',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Error in handleConfirm:', error);
+      Alert.alert(
+        'Error',
+        'An unexpected error occurred. Please try again later.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -138,17 +241,19 @@ By checking the box below, I acknowledge that I have read this waiver, understan
             <ThemedText style={styles.checkboxLabel}>
               I confirm that I have read and agree to the waiver terms
             </ThemedText>
-          </View>
-
-          <TouchableOpacity 
+          </View>          <TouchableOpacity 
             style={[
               styles.confirmButton, 
-              isChecked ? { backgroundColor: 'rgba(33, 101, 90, 1)', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84, elevation: 5 } : styles.disabledButton
+              isChecked && !isSubmitting ? { backgroundColor: 'rgba(33, 101, 90, 1)', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84, elevation: 5 } : styles.disabledButton
             ]}
             onPress={handleConfirm}
-            disabled={!isChecked}
+            disabled={!isChecked || isSubmitting}
           >
-            <ThemedText style={styles.confirmButtonText}>Confirm</ThemedText>
+            {isSubmitting ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <ThemedText style={styles.confirmButtonText}>Confirm</ThemedText>
+            )}
           </TouchableOpacity>
         </View>
       </ThemedView>
