@@ -302,16 +302,11 @@ export default function HomeScreen() {
             ) : videoStatus && !('isLoaded' in videoStatus && videoStatus.isLoaded) && (
               <View style={styles.videoLoadingOverlay}>
                 <ActivityIndicator size="large" color="#ffffff" />
-              </View>
-            )}
+              </View>            )}
             <GlassBackground style={styles.aboutUsTextContainer} intensity={40}>
               <ThemedText style={styles.aboutUsButtonText}>About Us</ThemedText>
             </GlassBackground>
-            <Image 
-              source={require('../../assets/images/aqua-360-logo.png')}
-              style={styles.logoCorner}
-              resizeMode="contain"
-            />            {/* Play/Pause Button Overlay */}
+            {/* Play/Pause Button Overlay */}
             {!videoError && (
               <TouchableOpacity 
                 style={styles.videoControlButton}
@@ -605,16 +600,6 @@ const styles = StyleSheet.create({
     lineHeight: 36,  // Added line height to ensure proper text rendering
     includeFontPadding: false,  // Prevents Android from cutting off top of text
     textAlignVertical: 'center',  // Ensures text is centered vertically (Android)
-  },
-  logoCorner: {
-    position: 'absolute',
-    top: 10, // Changed from bottom to top
-    left: 10, // Keep at left
-    width: 80, // Made slightly smaller (from 110)
-    height: 80, // Made slightly smaller (from 110)
-    borderRadius: 10, // Changed to smaller radius for square appearance
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    padding: 5,
   },
   // New styles for action button layout
   actionButtonsWrapper: {

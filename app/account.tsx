@@ -340,13 +340,12 @@ function AccountPage() {
   };
   return (    <ThemedView
       style={styles.container}
-    >
-      <Stack.Screen options={{ 
+    >      <Stack.Screen options={{ 
         title: 'My Account',
         headerStyle: {
-          backgroundColor: '#000000', // Changed to black to match other headers
+          backgroundColor: '#FFFFFF', // Changed to white as requested
         },
-        headerTintColor: '#FFFFFF', // Changed to white for better contrast on black
+        headerTintColor: '#21655A', // Changed text color to match the app's accent color
         headerTitleStyle: {
           fontWeight: 'bold',
         },
@@ -512,14 +511,13 @@ export default withProtectedRoute(AccountPage);
 
 const windowWidth = Dimensions.get('window').width;
 
-const styles = StyleSheet.create({
-  container: {
+const styles = StyleSheet.create({  container: {
     flex: 1,
-    backgroundColor: '#ffffff', // Changed from #52D6E2 to white
+    backgroundColor: '#52D6E2', // Changed to app's blue theme color
   },
   scrollView: {
     flex: 1,
-    backgroundColor: '#ffffff', // Changed from #52D6E2 to white
+    backgroundColor: '#52D6E2', // Changed to app's blue theme color
   },
   scrollContent: {
     flexGrow: 1,
