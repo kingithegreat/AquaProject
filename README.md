@@ -37,6 +37,15 @@ This app has been specifically enhanced for compatibility with Expo Go:
    - Improved error handling for various authentication scenarios
    - Network-aware login process
 
+4. **AI Assistant**:
+   - Powered by Hugging Face's DialoGPT model
+   - Chat history storage in Firebase for authenticated users
+   - Offline support with AsyncStorage
+   - Suggested topics for improved user experience
+   - Free unlimited usage with Hugging Face API
+   - Easy to switch AI models via configuration
+   - See [AI Assistant Documentation](./docs/ai-assistant.md) for details
+
 ## Troubleshooting
 
 ### Common Issues
@@ -74,6 +83,7 @@ This app has been specifically enhanced for compatibility with Expo Go:
 
 - **User Authentication**: Sign up, login, and account management with offline credential storage
 - **Service Booking**: Book jet skis, tours, and the aqua lounge
+- **AI Assistant**: Get instant answers about services using Hugging Face's AI models
 - **Offline Support**: Enhanced offline capabilities and network status monitoring
 - **Reviews System**: Leave and read reviews from other users
 - **Add-ons**: Customize your bookings with additional services
@@ -105,6 +115,7 @@ This app has been specifically enhanced for compatibility with Expo Go:
    FIREBASE_STORAGE_BUCKET=your-app.appspot.com
    FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
    FIREBASE_APP_ID=your_app_id
+   EXPO_PUBLIC_HUGGINGFACE_API_KEY=your_huggingface_token
    ```
 
 3. Start the Expo development server specifically optimized for Expo Go:
@@ -197,7 +208,12 @@ If you encounter issues running the app in Expo Go, try these solutions:
    - The app has offline capabilities, so you can still test most features
    - Check your Firebase configuration in `.env` file
 
-4. **Blank Screen or Crashes**
+4. **AI Assistant Issues**
+   - Make sure you've added your Hugging Face API token to the `.env` file
+   - See [Hugging Face API Setup](./docs/huggingface-api-setup.md) for detailed instructions
+   - The AI Assistant will gracefully handle network issues with appropriate error messages
+
+5. **Blank Screen or Crashes**
    - The app uses an ErrorBoundary to catch and display errors
    - Check the Metro bundler console for error messages
 

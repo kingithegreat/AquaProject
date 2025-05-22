@@ -75,14 +75,15 @@ export default function LoginScreen() {
       setError('You appear to be offline. Please check your internet connection and try again.');
       return;
     }
-    
-    // Basic validation
+      // Basic validation
     if (!email.trim() || !password.trim()) {
       setError('Please enter both email and password');
       return;
     }
     
-    if (!email.includes('@') || !email.includes('.')) {
+    // Better email validation with regex
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email)) {
       setError('Please enter a valid email address');
       return;
     }
