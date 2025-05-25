@@ -129,7 +129,9 @@ export default function RootLayout() {
             headerTintColor: '#000000',
             headerTitleStyle: { fontWeight: 'bold' },
           }}>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            {/* Main screens */}
+            <Stack.Screen name="index" options={{ headerShown: false, title: 'Home' }} />
+            <Stack.Screen name="explore" options={{ title: 'Explore' }} />
             <Stack.Screen name="about-us" options={{ title: "About Us" }} />
             <Stack.Screen name="ai-assist" options={{ title: "AI Assistant" }} />
             <Stack.Screen name="aqua-lounge" options={{ title: "Aqua Lounge" }} />

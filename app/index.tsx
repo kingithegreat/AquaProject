@@ -21,7 +21,7 @@ import { db } from '@/config/firebase';
 const preloadImages = async () => {
   try {
     const images = [
-      require('../../assets/images/about-us-image.webp'),
+      require('../assets/images/about-us-image.webp'),
     ];
     
     await Promise.all(images.map(image => Asset.fromModule(image).downloadAsync()));
@@ -280,7 +280,7 @@ export default function HomeScreen() {    const { user, logout, loading } = useA
             <Video
               ref={videoRef}
               style={styles.aboutUsImage}
-              source={require('../../assets/video/Biscuit-ride.mp4')}
+              source={require('../assets/video/Biscuit-ride.mp4')}
               resizeMode={ResizeMode.COVER}
               isLooping
               shouldPlay
@@ -298,7 +298,7 @@ export default function HomeScreen() {    const { user, logout, loading } = useA
             */}
             {videoError ? (
               <Image 
-                source={require('../../assets/images/about-us-image.webp')}
+                source={require('../assets/images/about-us-image.webp')}
                 style={styles.aboutUsImage}
                 resizeMode="cover"
               />
