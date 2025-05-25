@@ -8,7 +8,8 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 
 export default function ExploreScreen() {
   return (
-    <ScrollView style={styles.container}>      <ThemedView style={styles.header}>
+    <ScrollView style={styles.container}>
+      <ThemedView style={styles.header}>
         <IconSymbol 
           name="map" 
           size={60} 

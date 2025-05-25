@@ -80,15 +80,12 @@ interface Review {
   createdAt?: Date;
 }
 
-export default function HomeScreen() {    const { user, logout, loading } = useAuth();
-  
-  // State management
+export default function HomeScreen() {
+  const { user, logout, loading } = useAuth();
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [reviewsError, setReviewsError] = useState<string | null>(null);
-  
-  // Video player refs and state
   const videoRef = useRef<Video>(null);
   const [videoStatus, setVideoStatus] = useState<AVPlaybackStatus>({} as AVPlaybackStatus);  const [videoError, setVideoError] = useState<boolean>(false);
     
