@@ -31,21 +31,42 @@ LogBox.ignoreLogs([
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
+/**
+ * RootLayout component - the main entry point for the app's UI.
+ * It handles font loading, splash screen management, and update checking.
+ */
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  
+  // Load custom fonts
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+  
+  // State to manage loading status
   const [isLoadingComplete, setLoadingComplete] = useState(false);
-  const [loadError, setLoadError] = useState<Error | null>(null);  // Check for app updates when NOT running in development mode
+  
+  // State to capture any loading errors
+  const [loadError, setLoadError] = useState<Error | null>(null);  
+  
+  /**
+   * checkForUpdates function - checks and handles app updates.
+   * It is called during the initial app preparation in a non-development environment.
+   */
   const checkForUpdates = useCallback(async () => {
     try {
+      // Only check for updates if not in development mode
       if (!__DEV__ && Updates.channel !== 'development') {
         console.log('Checking for updates...');
+        
+        // Check if an update is available
         const update = await Updates.checkForUpdateAsync();
         
         if (update.isAvailable) {
+          // If an update is available, fetch it
           await Updates.fetchUpdateAsync();
+          
+          // Notify the user about the available update
           Alert.alert(
             "Update Available", 
             "A new update is available. Restart the app to apply it.",
@@ -102,7 +123,10 @@ export default function RootLayout() {
     }
 
     prepare();
-  }, [loaded, error]);  if (!isLoadingComplete) {
+  }, [loaded, error]);  
+
+  // While the app is loading (fonts, etc.), show a splash screen with the logo
+  if (!isLoadingComplete) {
     return (
       <View style={styles.container}>
         <Image 
@@ -116,10 +140,12 @@ export default function RootLayout() {
     );
   }
 
+  // If there was an error during loading, log it and continue rendering the app
   if (loadError) {
     console.log('Continuing despite load error:', loadError);
     // We'll continue rendering the app despite the error
   }
+  
   return (
     <ErrorBoundary>
       <AuthProvider>

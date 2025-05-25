@@ -1,5 +1,6 @@
 // Aqua360 Homepage - Main landing screen
 
+// Importing necessary libraries and components for the homepage
 import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, ScrollView, TouchableOpacity, View, Image, Dimensions, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +19,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/config/firebase';
 
 // Preload images for better performance
+// This function ensures that images are downloaded and cached before they are displayed on the screen.
 const preloadImages = async () => {
   try {
     const images = [
@@ -33,11 +35,14 @@ const preloadImages = async () => {
 };
 
 // Cross-platform glass morphism component
+// This component creates a semi-transparent, blurred background effect.
+// On iOS, it uses the native BlurView for a real blur effect.
+// On Android, it uses a semi-transparent background as a fallback.
 interface GlassBackgroundProps {
-  style?: any;
-  intensity?: number;
-  children: React.ReactNode;
-  noRadius?: boolean;
+  style?: any; // Custom styles for the glass effect
+  intensity?: number; // Intensity of the blur effect (iOS only)
+  children: React.ReactNode; // Content to display inside the glass effect
+  noRadius?: boolean; // Whether to remove border radius
 }
 
 function GlassBackground({ style, intensity = 50, children, noRadius = false }: GlassBackgroundProps) {
@@ -72,12 +77,13 @@ function GlassBackground({ style, intensity = 50, children, noRadius = false }: 
 }
 
 // Review data structure
+// This defines the shape of a review object, which includes details like the author's name, review text, rating, and creation date.
 interface Review {
-  id?: string;
-  author: string;
-  text: string;
-  rating: number;
-  createdAt?: Date;
+  id?: string; // Unique identifier for the review (optional)
+  author: string; // Name of the person who wrote the review
+  text: string; // The content of the review
+  rating: number; // Rating given by the reviewer (e.g., 1-5 stars)
+  createdAt?: Date; // Date when the review was created (optional)
 }
 
 export default function HomeScreen() {    const { user, logout, loading } = useAuth();
