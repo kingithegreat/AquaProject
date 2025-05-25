@@ -1,6 +1,6 @@
 // Aqua360 Homepage - Main landing screen
 
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, ScrollView, TouchableOpacity, View, Image, Dimensions, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router, useFocusEffect } from 'expo-router';
@@ -9,7 +9,7 @@ import { Asset } from 'expo-asset';
 import { StatusBar } from 'expo-status-bar';
 import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
-import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -88,31 +88,32 @@ export default function HomeScreen() {    const { user, logout, loading } = useA
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [reviewsError, setReviewsError] = useState<string | null>(null);
   
-  // Video player refs and state
-  const videoRef = useRef<Video>(null);
-  const [videoStatus, setVideoStatus] = useState<AVPlaybackStatus>({} as AVPlaybackStatus);  const [videoError, setVideoError] = useState<boolean>(false);
+  // Video player with new expo-video API
+  const player = useVideoPlayer(require('../assets/video/Biscuit-ride.mp4'), (player) => {
+    player.loop = true;
+    player.muted = true;
+    player.play();
+  });
+  const [videoError, setVideoError] = useState<boolean>(false);
     
   // Video playback controls
-  const toggleVideoPlayback = async () => {
-    if (videoRef.current) {
-      try {
-        const status = await videoRef.current.getStatusAsync();
-        if (status.isLoaded && status.isPlaying) {
-          await videoRef.current.pauseAsync();
-        } else {
-          await videoRef.current.playAsync();
-        }
-      } catch (error) {
-        console.error('Error toggling video playback:', error);
-        setVideoError(true);
+  const toggleVideoPlayback = () => {
+    try {
+      if (player.playing) {
+        player.pause();
+      } else {
+        player.play();
       }
+    } catch (error) {
+      console.error('Error toggling video playback:', error);
+      setVideoError(true);
     }
   };
   
   const handleVideoError = () => {
     console.error('Video playback error occurred');
     setVideoError(true);
-  };  
+  };
   // Fetch reviews from Firebase
   const fetchReviews = async () => {
     try {
@@ -156,21 +157,9 @@ export default function HomeScreen() {    const { user, logout, loading } = useA
   useEffect(() => {
     preloadImages().then(() => setImagesLoaded(true));
   }, []);
-  
-  useEffect(() => {
+    useEffect(() => {
     fetchReviews();
   }, []);
-  
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.playAsync();
-    }
-    
-    return () => {
-      if (videoRef.current) {
-        videoRef.current.unloadAsync();
-      }
-    };  }, []);
   
   useFocusEffect(
     useCallback(() => {
@@ -262,31 +251,25 @@ export default function HomeScreen() {    const { user, logout, loading } = useA
             4. USER CONTROLS: Users can tap to play/pause the video
             5. NAVIGATION: Clicking the video navigates to the About Us page
           */}
-          <TouchableOpacity style={styles.aboutUsButton} onPress={handleAboutUs}>
-            {/* 
+          <TouchableOpacity style={styles.aboutUsButton} onPress={handleAboutUs}>            {/* 
               MAIN VIDEO PLAYER
               ================
-              This Video component from Expo AV handles all video playback functionality.
+              This VideoView component from expo-video handles all video playback functionality.
               Key props explained:
-              - ref={videoRef}: Allows us to control the video programmatically (play/pause)
-              - source: Path to the MP4 video file stored in our assets folder
-              - resizeMode: How to fit the video in the container (COVER = fills space, may crop)
-              - isLooping: Video repeats automatically when it ends
-              - shouldPlay: Video starts playing immediately when loaded
-              - isMuted: Video plays without sound (good for autoplay UX)
-              - onPlaybackStatusUpdate: Callback that runs when video state changes (playing, paused, loaded, etc.)
-              - onError: Callback that runs if video fails to load
+              - player: The video player instance created with useVideoPlayer hook
+              - style: CSS styling for the video container
+              - allowsFullscreen: Enables fullscreen mode for better viewing
+              - allowsPictureInPicture: Enables picture-in-picture mode
+              - contentFit: How to fit the video in the container (cover = fills space, may crop)
+              
+              The video source, looping, muted state, and autoplay are configured in the useVideoPlayer hook.
             */}
-            <Video
-              ref={videoRef}
+            <VideoView
               style={styles.aboutUsImage}
-              source={require('../assets/video/Biscuit-ride.mp4')}
-              resizeMode={ResizeMode.COVER}
-              isLooping
-              shouldPlay
-              isMuted={true}
-              onPlaybackStatusUpdate={status => setVideoStatus(() => status)}
-              onError={() => setVideoError(true)}
+              player={player}
+              allowsFullscreen
+              allowsPictureInPicture
+              contentFit="cover"
             />
             
             {/* 
@@ -295,25 +278,13 @@ export default function HomeScreen() {    const { user, logout, loading } = useA
               If the video fails to load (poor internet, unsupported format, etc.),
               we show a static image instead. This is called "graceful degradation" -
               the app still works even if one feature fails.
-            */}
-            {videoError ? (
+            */}            {videoError ? (
               <Image 
                 source={require('../assets/images/about-us-image.webp')}
                 style={styles.aboutUsImage}
                 resizeMode="cover"
               />
-            ) : videoStatus && !('isLoaded' in videoStatus && videoStatus.isLoaded) && (
-              /* 
-                LOADING OVERLAY
-                ==============
-                While the video is still loading, we show a spinning indicator
-                overlaid on top of the video area. This gives users visual feedback
-                that something is happening.
-              */
-              <View style={styles.videoLoadingOverlay}>
-                <ActivityIndicator size="large" color="#ffffff" />
-              </View>
-            )}
+            ) : null}
             
             {/* 
               GLASS MORPHISM TEXT OVERLAY
@@ -344,10 +315,9 @@ export default function HomeScreen() {    const { user, logout, loading } = useA
               <TouchableOpacity 
                 style={styles.videoControlButton}
                 onPress={toggleVideoPlayback}
-              >
-                <Ionicons 
-                  name={'isLoaded' in videoStatus && videoStatus.isLoaded && videoStatus.isPlaying ? "pause" : "play"} 
-                  size={30} 
+              >                <Ionicons 
+                  name={player.playing ? "pause" : "play"} 
+                  size={30}
                   color="white" 
                 />
               </TouchableOpacity>
