@@ -1,3 +1,34 @@
+/**
+ * AQUA 360° - BOOKING SYSTEM
+ * ==========================
+ * 
+ * PRESENTATION HIGHLIGHTS:
+ * - Complete end-to-end booking management system
+ * - Real-time availability checking and validation
+ * - Multiple service types (Jet Skis, Aqua Lounge, Tours)
+ * - Advanced date/time picker with business rules
+ * - Dynamic pricing calculation with add-ons
+ * - Firebase integration for booking persistence
+ * - Offline capability with queue management
+ * 
+ * BUSINESS FEATURES DEMONSTRATED:
+ * ✅ Multi-service booking platform
+ * ✅ Dynamic pricing engine
+ * ✅ Legal waiver integration & verification
+ * ✅ Real-time availability management
+ * ✅ Booking confirmation system
+ * ✅ User account integration
+ * ✅ Offline booking queue management
+ * 
+ * TECHNICAL ACHIEVEMENTS:
+ * ✅ Complex form validation and state management
+ * ✅ Firebase Firestore real-time database
+ * ✅ AsyncStorage for offline capabilities
+ * ✅ Professional date/time selection UI
+ * ✅ Protected route authentication
+ * ✅ Cross-platform compatibility
+ */
+
 import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, 

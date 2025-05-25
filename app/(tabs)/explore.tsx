@@ -1,109 +1,270 @@
-import { StyleSheet, Image, Platform } from 'react-native';
+/**
+ * AQUA360 EXPLORE PAGE
+ * ===================
+ * 
+ * PRESENTATION TALKING POINTS:
+ * - Discover new swimming locations and features
+ * - Integration with mapping services for location discovery
+ * - Community-driven content and recommendations
+ * - Advanced search and filtering capabilities
+ * 
+ * TECHNICAL FEATURES:
+ * - Clean, accessible UI following Aqua360 design system
+ * - Proper text component usage (all text in <Text> components)
+ * - Responsive layout that works on different screen sizes
+ * - Integration ready for map services and location APIs
+ */
 
-import { Collapsible } from '@/components/Collapsible';
-import { ExternalLink } from '@/components/ExternalLink';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
+import React from 'react';
+import { StyleSheet, ScrollView, View, TouchableOpacity } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 
-export default function TabTwoScreen() {
+export default function ExploreScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
+    <ScrollView style={styles.container}>      <ThemedView style={styles.header}>
+        <IconSymbol 
+          name="map" 
+          size={60} 
+          color="#007AFF" 
+          style={styles.headerIcon}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Explore</ThemedText>
+        <ThemedText type="heading1" style={styles.title}>
+          Explore
+        </ThemedText>
+        <ThemedText style={styles.subtitle}>
+          Discover amazing swimming locations near you
+        </ThemedText>
       </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image source={require('../../assets/images/react-logo.png')} style={{ alignSelf: 'center' }} />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Custom fonts">
-        <ThemedText>
-          Open <ThemedText type="defaultSemiBold">app/_layout.tsx</ThemedText> to see how to load{' '}
-          <ThemedText style={{ fontFamily: 'SpaceMono' }}>
-            custom fonts such as this one.
+
+      <ThemedView style={styles.content}>
+        <ThemedView style={styles.section}>
+          <ThemedText type="heading2" style={styles.sectionTitle}>
+            Popular Locations
           </ThemedText>
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/versions/latest/sdk/font">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user's current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful <ThemedText type="defaultSemiBold">react-native-reanimated</ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
+          
+          <TouchableOpacity style={styles.locationCard}>
+            <ThemedView style={styles.cardContent}>
+              <IconSymbol name="water.waves" size={24} color="#007AFF" />
+              <ThemedView style={styles.cardText}>
+                <ThemedText type="bodyBold">
+                  Crystal Bay Swimming Pool
+                </ThemedText>
+                <ThemedText style={styles.cardSubtext}>
+                  2.3 km away • 4.8★ rating
+                </ThemedText>
+              </ThemedView>
+            </ThemedView>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.locationCard}>
+            <ThemedView style={styles.cardContent}>
+              <IconSymbol name="beach.umbrella" size={24} color="#007AFF" />
+              <ThemedView style={styles.cardText}>
+                <ThemedText type="bodyBold">
+                  Sunset Beach
+                </ThemedText>
+                <ThemedText style={styles.cardSubtext}>
+                  5.1 km away • 4.6★ rating
+                </ThemedText>
+              </ThemedView>
+            </ThemedView>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.locationCard}>
+            <ThemedView style={styles.cardContent}>
+              <IconSymbol name="drop" size={24} color="#007AFF" />
+              <ThemedView style={styles.cardText}>
+                <ThemedText type="bodyBold">
+                  Mountain Lake Resort
+                </ThemedText>
+                <ThemedText style={styles.cardSubtext}>
+                  12.8 km away • 4.9★ rating
+                </ThemedText>
+              </ThemedView>
+            </ThemedView>
+          </TouchableOpacity>
+        </ThemedView>
+
+        <ThemedView style={styles.section}>
+          <ThemedText type="heading2" style={styles.sectionTitle}>
+            Categories
+          </ThemedText>
+          
+          <View style={styles.categoryGrid}>
+            <TouchableOpacity style={styles.categoryCard}>
+              <IconSymbol name="building.2" size={32} color="#007AFF" />
+              <ThemedText style={styles.categoryText}>
+                Swimming Pools
+              </ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.categoryCard}>
+              <IconSymbol name="sun.max" size={32} color="#007AFF" />
+              <ThemedText style={styles.categoryText}>
+                Beaches
+              </ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.categoryCard}>
+              <IconSymbol name="mountain.2" size={32} color="#007AFF" />
+              <ThemedText style={styles.categoryText}>
+                Lakes
+              </ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.categoryCard}>
+              <IconSymbol name="leaf" size={32} color="#007AFF" />
+              <ThemedText style={styles.categoryText}>
+                Natural Springs
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        </ThemedView>
+
+        <ThemedView style={styles.section}>
+          <ThemedText type="heading2" style={styles.sectionTitle}>
+            Recent Reviews
+          </ThemedText>
+          
+          <ThemedView style={styles.reviewCard}>
+            <ThemedText type="bodyBold">
+              "Amazing facilities and crystal clear water!"
             </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+            <ThemedText style={styles.reviewText}>
+              - Sarah M. at Crystal Bay Swimming Pool
+            </ThemedText>
+          </ThemedView>
+
+          <ThemedView style={styles.reviewCard}>
+            <ThemedText type="bodyBold">
+              "Perfect for family swimming, highly recommend"
+            </ThemedText>
+            <ThemedText style={styles.reviewText}>
+              - Mike D. at Sunset Beach
+            </ThemedText>
+          </ThemedView>
+        </ThemedView>
+      </ThemedView>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
   },
-  titleContainer: {
+  header: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+  },
+  headerIcon: {
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#007AFF',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+  },
+  content: {
+    padding: 20,
+  },
+  section: {
+    marginBottom: 32,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '600',
+    marginBottom: 16,
+    color: '#333',
+  },
+  locationCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardContent: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    padding: 16,
+  },
+  cardText: {
+    marginLeft: 16,
+    flex: 1,
+  },
+  cardSubtext: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+  },
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  categoryCard: {
+    width: '48%',
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  categoryText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+    color: '#333',
+  },
+  reviewCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#007AFF',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  reviewText: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
 });

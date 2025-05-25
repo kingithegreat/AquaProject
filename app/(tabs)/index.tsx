@@ -1,3 +1,32 @@
+/**
+ * AQUA 360° - HOME SCREEN (MAIN LANDING PAGE)
+ * ===========================================
+ * 
+ * PRESENTATION HIGHLIGHTS:
+ * - Complete jet ski rental business mobile app
+ * - Modern video-first hero section with interactive controls
+ * - Real-time customer reviews from Firebase database
+ * - User authentication with personalized experience
+ * - Quick navigation to all business features
+ * - Professional glass morphism design system
+ * 
+ * BUSINESS FEATURES DEMONSTRATED:
+ * ✅ Customer authentication & account management
+ * ✅ Real-time review system with star ratings
+ * ✅ Video marketing with interactive controls
+ * ✅ Direct booking system integration
+ * ✅ Legal waiver management
+ * ✅ AI customer support access
+ * ✅ Cross-platform mobile experience
+ * 
+ * TECHNICAL ACHIEVEMENTS:
+ * ✅ Firebase real-time database integration
+ * ✅ Expo video playback with custom controls
+ * ✅ Performance optimized image preloading
+ * ✅ Responsive design for all screen sizes
+ * ✅ Professional authentication flow
+ */
+
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { StyleSheet, ScrollView, TouchableOpacity, View, Image, Dimensions, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';

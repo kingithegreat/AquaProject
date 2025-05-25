@@ -1,3 +1,24 @@
+/**
+ * AQUA 360° - AI ASSISTANT SCREEN
+ * ===============================
+ * 
+ * PRESENTATION HIGHLIGHTS:
+ * - Advanced AI chatbot integration using Hugging Face API
+ * - Real-time customer support for jet ski rental inquiries
+ * - Persistent chat history with Firebase integration
+ * - Intelligent suggested topics for common questions
+ * - Cross-platform compatibility (iOS/Android)
+ * - Modern glass morphism UI design
+ * 
+ * KEY FEATURES DEMONSTRATED:
+ * ✅ AI-powered customer service automation
+ * ✅ Real-time chat interface with smooth animations
+ * ✅ Error handling and network resilience
+ * ✅ User authentication integration
+ * ✅ Responsive mobile-first design
+ * ✅ Professional business application
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, SafeAreaView, TouchableOpacity, Platform, TextInput, ActivityIndicator, KeyboardAvoidingView, StatusBar, FlatList, Alert } from 'react-native';
 import { router } from 'expo-router';
