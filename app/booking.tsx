@@ -697,7 +697,7 @@ function BookingScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.confirmationModal}>
             <Image
-              source={require('../assets/images/splash-icon.png')}
+              source={require('../assets/images/aqua-360-logo.png')}
               style={styles.confirmationImage}
               resizeMode="contain"
             />
