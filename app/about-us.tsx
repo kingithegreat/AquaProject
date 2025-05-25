@@ -1,15 +1,4 @@
-/**
- * About Us Screen for Aqua 360° App
- * 
- * This screen displays information about the business, including:
- * - Company overview
- * - Available services with interactive carousel
- * - Operating hours
- * - Contact information
- * 
- * The screen features a horizontal carousel of services that can be tapped
- * to view more details in a modal popup.
- */
+// About Us screen for Aqua 360°
 import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, 
@@ -126,7 +115,7 @@ export default function AboutUsScreen() {
       description: 'Experience the freedom and exhilaration of riding our brand-new luxurious Sea-Doo GTI 130 models on the beautiful blue waters of Mount Maunganui. Perfect for both beginners and experienced riders, our jet skis are fully kitted to offer the most unique and exciting water experiences in the Bay! Our professional A-Team ensures your safety on the water at all times.', 
       image: require('../assets/images/Jetski-image.webp'),
       price: 'From $130/30 minutes',
-      duration: '30 minutes - 2 hours'
+      duration: ' upto 4 hours'
     },
     { 
       id: 2, 

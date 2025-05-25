@@ -46,9 +46,8 @@ function MyBookingsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
-
   // Format date for display
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string | Date): string => {
     try {
       const date = new Date(dateString);
       return date.toLocaleDateString('en-US', {
@@ -64,7 +63,7 @@ function MyBookingsScreen() {
   };
 
   // Format time for display
-  const formatTime = (timeString) => {
+  const formatTime = (timeString: string | Date): string => {
     try {
       const time = new Date(timeString);
       return time.toLocaleTimeString('en-US', {
@@ -78,7 +77,7 @@ function MyBookingsScreen() {
   };
 
   // Get service name from service type
-  const getServiceName = (serviceType, quantity) => {
+  const getServiceName = (serviceType: string, quantity: number): string => {
     switch(serviceType) {
       case 'jetski':
         return `Jet Skis (${quantity})`;
@@ -90,25 +89,39 @@ function MyBookingsScreen() {
         return serviceType || 'Unknown Service';
     }
   };
-  
-  // Check for locally stored bookings that haven't been synced yet
-  const getLocalBookings = async () => {
+    // Check for locally stored bookings that haven't been synced yet
+  const getLocalBookings = async (): Promise<Booking[]> => {
     try {
       const keys = await AsyncStorage.getAllKeys();
       const bookingKeys = keys.filter(key => key.startsWith('booking_'));
       
       if (bookingKeys.length === 0) return [];
-      
-      const localBookingsData = await AsyncStorage.multiGet(bookingKeys);
-      return localBookingsData.map(([key, value]) => {
-        const booking = JSON.parse(value);
-        return {
-          ...booking,
-          id: key, // Use the AsyncStorage key as ID
-          isLocal: true, // Mark as locally stored booking
-          status: 'pending sync' // Special status for local bookings
-        };
-      }).filter(booking => booking.userId === user?.uid);
+        const localBookingsData = await AsyncStorage.multiGet(bookingKeys);
+      return localBookingsData        .map(([key, value]) => {
+          if (value === null) return null;
+          try {
+            const booking = JSON.parse(value);
+            return {
+              id: key, // Use the AsyncStorage key as ID
+              userId: booking.userId || '',
+              serviceType: booking.serviceType || '',
+              quantity: booking.quantity || 1,
+              totalAmount: booking.totalAmount || 0,
+              date: booking.date || '',
+              time: booking.time || '',
+              status: 'pending sync', // Special status for local bookings
+              reference: booking.reference,
+              notes: booking.notes,
+              addOns: booking.addOns || [],
+              createdAt: booking.createdAt || new Date(),
+              isLocal: true // Mark as locally stored booking
+            } as Booking;
+          } catch (parseError) {
+            console.error('Error parsing booking data:', parseError);
+            return null;
+          }
+        })
+        .filter((booking): booking is Booking => booking !== null && booking.userId === user?.uid);
     } catch (error) {
       console.error('Error fetching local bookings:', error);
       return [];
@@ -128,12 +141,11 @@ function MyBookingsScreen() {
         setLoading(false);
         return;
       }
-      
-      // Get local bookings first (these will show regardless of connection)
-      const localBookings = await getLocalBookings();
+        // Get local bookings first (these will show regardless of connection)
+      const localBookings: Booking[] = await getLocalBookings();
       console.log(`Found ${localBookings.length} local bookings`);
 
-      let firestoreBookings = [];
+      let firestoreBookings: Booking[] = [];
       
       // Only attempt to fetch from Firestore if online
       if (online) {
@@ -145,11 +157,10 @@ function MyBookingsScreen() {
           );
 
           const querySnapshot = await getDocs(q);
-          
-          firestoreBookings = querySnapshot.docs.map(doc => {
+            firestoreBookings = querySnapshot.docs.map(doc => {
             const data = doc.data();
             // Handle createdAt field safely
-            let createdAtDate;
+            let createdAtDate: Date;
             if (data.createdAt) {
               if (typeof data.createdAt === 'string') {
                 createdAtDate = new Date(data.createdAt);
@@ -164,10 +175,19 @@ function MyBookingsScreen() {
             
             return {
               id: doc.id,
-              ...data,
+              userId: data.userId || '',
+              serviceType: data.serviceType || '',
+              quantity: data.quantity || 1,
+              totalAmount: data.totalAmount || 0,
+              date: data.date || '',
+              time: data.time || '',
+              status: data.status || 'pending',
+              reference: data.reference,
+              notes: data.notes,
+              addOns: data.addOns || [],
               createdAt: createdAtDate,
               isLocal: false
-            };
+            } as Booking;
           });
           
           console.log(`Found ${firestoreBookings.length} Firestore bookings`);
@@ -188,14 +208,12 @@ function MyBookingsScreen() {
             'Internet connection not available. Please connect to the internet to see all your bookings.'
           );
         }
-      }
-
-      // Combine bookings from both sources and sort them
+      }      // Combine bookings from both sources and sort them
       const allBookings = [...firestoreBookings, ...localBookings];
       allBookings.sort((a, b) => {
         const dateA = new Date(a.createdAt);
         const dateB = new Date(b.createdAt);
-        return dateB - dateA; // Sort by date, newest first
+        return dateB.getTime() - dateA.getTime(); // Sort by date, newest first
       });
 
       setBookings(allBookings);

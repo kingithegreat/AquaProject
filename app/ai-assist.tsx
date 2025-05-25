@@ -1,23 +1,4 @@
-/**
- * AQUA 360° - AI ASSISTANT SCREEN
- * ===============================
- * 
- * PRESENTATION HIGHLIGHTS:
- * - Advanced AI chatbot integration using Hugging Face API
- * - Real-time customer support for jet ski rental inquiries
- * - Persistent chat history with Firebase integration
- * - Intelligent suggested topics for common questions
- * - Cross-platform compatibility (iOS/Android)
- * - Modern glass morphism UI design
- * 
- * KEY FEATURES DEMONSTRATED:
- * ✅ AI-powered customer service automation
- * ✅ Real-time chat interface with smooth animations
- * ✅ Error handling and network resilience
- * ✅ User authentication integration
- * ✅ Responsive mobile-first design
- * ✅ Professional business application
- */
+// AI Assistant - Customer support chatbot
 
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, SafeAreaView, TouchableOpacity, Platform, TextInput, ActivityIndicator, KeyboardAvoidingView, StatusBar, FlatList, Alert } from 'react-native';
@@ -79,46 +60,41 @@ function GlassBackground({ style, intensity = 50, children, noRadius = false }: 
 }
 
 export default function AIAssistScreen() {
-  // Get the current user from auth
+  // Chat state management
   const { user } = useAuth();
-    // State for handling the chat functionality
   const [userPrompt, setUserPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [initializing, setInitializing] = useState(true);
   const [networkError, setNetworkError] = useState(false);
   const [apiKeyValid, setApiKeyValid] = useState(true);
-    // Ref for flat list to automatically scroll to bottom
   const flatListRef = useRef<FlatList>(null);
-    // Load chat history when component mounts and check API key
+  // Initialize AI assistant on component load
   useEffect(() => {
     const initialize = async () => {
       try {
         setInitializing(true);
-          // Check if the Hugging Face API key is valid
         const isValid = await isHuggingFaceApiKeyValid();
         setApiKeyValid(isValid);
-        
-        // Load chat history
         const history = await loadChatHistory(user?.uid || null);
         if (history && history.messages.length > 0) {
           setChatHistory(history.messages);
         }
       } catch (error) {
-        console.error('Error initializing AI Assistant:', error);
+        console.error('❌ Error initializing AI Assistant:', error);
       } finally {
         setInitializing(false);
       }
     };
-
     initialize();
-  }, [user]);// Function to handle AI response using Hugging Face
+  }, [user]);
+  // Handle AI message sending
   const handleAskAI = async () => {
     if (!userPrompt.trim() || !apiKeyValid) return;
     
-    setNetworkError(false); // Reset network error state
+    setNetworkError(false);
     
-    // Add user message to chat history immediately for responsiveness
+    // Add user message immediately
     const newUserMessage: ChatMessage = { 
       type: 'user', 
       message: userPrompt,
@@ -127,14 +103,13 @@ export default function AIAssistScreen() {
     
     const updatedHistory = [...chatHistory, newUserMessage];
     setChatHistory(updatedHistory);
-    
     setIsLoading(true);
-      try {      // Get response from Hugging Face API
+
+    try {
+      // Send to AI service
       const response = await sendMessageToHuggingFace(userPrompt, user?.uid || null);
       
-      // We don't need to add the AI response to the chat history here
-      // as it's already being added by the sendMessageToHuggingFace function
-      // But we need to update our local state
+      // Add AI response
       const newAiMessage: ChatMessage = {
         type: 'ai',
         message: response,
@@ -143,10 +118,10 @@ export default function AIAssistScreen() {
       
       setChatHistory([...updatedHistory, newAiMessage]);
     } catch (error) {
-      console.error('Error getting AI response:', error);
+      console.error('❌ Error getting AI response:', error);
       setNetworkError(true);
       
-      // Add an error message to the chat
+      // Add error message
       const errorMessage: ChatMessage = {
         type: 'ai',
         message: 'Sorry, I encountered an error processing your request. Please check your internet connection and try again.',
@@ -156,7 +131,7 @@ export default function AIAssistScreen() {
       setChatHistory([...updatedHistory, errorMessage]);
     } finally {
       setIsLoading(false);
-      setUserPrompt(''); // Clear input after sending
+      setUserPrompt('');
     }
   };
 
@@ -259,22 +234,8 @@ export default function AIAssistScreen() {
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
-      >
-        <View style={styles.container}>
-          {/* Header with Title and Clear Button */}
+      >        <View style={styles.container}>          {/* Header - now empty but maintaining space */}
           <View style={styles.header}>
-            <GlassBackground style={styles.titleContainer}>
-              <ThemedText style={styles.title}>AI Assistant</ThemedText>
-            </GlassBackground>
-            
-            {chatHistory.length > 0 && (
-              <TouchableOpacity
-                style={styles.clearButton}
-                onPress={handleClearChat}
-              >
-                <Ionicons name="trash-outline" size={24} color="#21655A" />
-              </TouchableOpacity>
-            )}
           </View>
 
           {/* Chat History Display */}
@@ -342,8 +303,7 @@ export default function AIAssistScreen() {
                 </View>
               )}
             </View>
-          )}
-            {/* User Prompt Input */}
+          )}            {/* User Prompt Input */}
           <View style={[
             styles.promptInputContainer,
             !apiKeyValid ? styles.disabledContainer : null
@@ -357,6 +317,17 @@ export default function AIAssistScreen() {
               numberOfLines={2}
               editable={apiKeyValid}
             />
+            
+            {/* Clear Chat Button - only show if there's chat history */}
+            {chatHistory.length > 0 && (
+              <TouchableOpacity
+                style={styles.clearButtonInInput}
+                onPress={handleClearChat}
+              >
+                <Ionicons name="trash-outline" size={20} color="#21655A" />
+              </TouchableOpacity>
+            )}
+            
             <TouchableOpacity 
               style={[
                 styles.sendButton,
@@ -407,8 +378,7 @@ const styles = StyleSheet.create({
     minHeight: 65,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  clearButton: {
+  },  clearButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
     borderRadius: 30,
     width: 50,
@@ -416,6 +386,16 @@ const styles = StyleSheet.create({
     marginLeft: 16,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  clearButtonInInput: {
+    backgroundColor: 'rgba(33, 101, 90, 0.1)',
+    borderRadius: 20,
+    padding: 8,
+    marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#21655A',
   },
   title: {
     fontSize: 28,

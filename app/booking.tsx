@@ -1,33 +1,4 @@
-/**
- * AQUA 360° - BOOKING SYSTEM
- * ==========================
- * 
- * PRESENTATION HIGHLIGHTS:
- * - Complete end-to-end booking management system
- * - Real-time availability checking and validation
- * - Multiple service types (Jet Skis, Aqua Lounge, Tours)
- * - Advanced date/time picker with business rules
- * - Dynamic pricing calculation with add-ons
- * - Firebase integration for booking persistence
- * - Offline capability with queue management
- * 
- * BUSINESS FEATURES DEMONSTRATED:
- * ✅ Multi-service booking platform
- * ✅ Dynamic pricing engine
- * ✅ Legal waiver integration & verification
- * ✅ Real-time availability management
- * ✅ Booking confirmation system
- * ✅ User account integration
- * ✅ Offline booking queue management
- * 
- * TECHNICAL ACHIEVEMENTS:
- * ✅ Complex form validation and state management
- * ✅ Firebase Firestore real-time database
- * ✅ AsyncStorage for offline capabilities
- * ✅ Professional date/time selection UI
- * ✅ Protected route authentication
- * ✅ Cross-platform compatibility
- */
+// Aqua360 Booking System
 
 import React, { useState, useEffect } from 'react';
 import { 
@@ -60,19 +31,7 @@ import {
 } from '@/config/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-/**
- * BookingScreen Component
- * 
- * This screen allows users to book water activities with Aqua 360°.
- * Users can select date, time, service type, and add-ons.
- * The booking process includes:
- * 1. Date and time selection
- * 2. Service selection (Jet Skis, Aqua Lounge, or Guided Tours)
- * 3. Quantity selection for Jet Skis (1-4)
- * 4. Selection of add-on activities
- * 5. Review of booking summary and total cost
- * 6. Confirmation with booking reference
- */
+// BookingScreen component
 function BookingScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -133,12 +92,7 @@ function BookingScreen() {
 
     checkWaiverStatus();
   }, [user]);
-  
-  /**
-   * Helper function to format date in a user-friendly way
-   * @param {Date} date - Date object to format
-   * @returns {string} Formatted date string (e.g., "Monday, April 28, 2025")
-   */
+    // Format date for display
   const formatDate = (date: Date) => {
     const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     return date.toLocaleDateString('en-US', options);
@@ -152,119 +106,98 @@ function BookingScreen() {
   const formatTime = (time: Date) => {
     return time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
-  
-  /**
-   * Handles date selection from the date picker
-   * Platform-specific behavior for iOS and Android
-   */
+    // Handle date selection
   const handleDateChange = (event: DateTimePickerEvent, date: Date | undefined) => {
     setShowCalendar(Platform.OS === 'ios');
     if (date) {
       setSelectedDate(date);
     }
   };
-
-  /**
-   * Handles time selection from the time picker
-   * Platform-specific behavior for iOS and Android
-   */
+  // Handle time selection
   const handleTimeChange = (event: DateTimePickerEvent, time: Date | undefined) => {
     setShowTimePicker(Platform.OS === 'ios');
     if (time) {
       setSelectedTime(time);
-    }
-  };
-    /**
-   * Updates selected services array
-   * @param {string} service - Service identifier ('jetski', 'aqualounge', or 'tours')
-   */
+    }  };
+  // Toggle service selection
   const handleServiceSelect = (service: string) => {
-    // Check if the service is already selected
+    // Check if the service is already in our selected list
     if (selectedServices.includes(service)) {
-      // Remove the service if it's already selected
+      // User wants to unselect - remove it from the array
+      // filter() keeps everything EXCEPT the service we want to remove
       setSelectedServices(selectedServices.filter(s => s !== service));
     } else {
-      // Add the service if it's not selected
+      // User wants to select - add it to the array      // ...selectedServices spreads the existing array, then we add the new service
       setSelectedServices([...selectedServices, service]);
     }
   };
-  
-  /**
-   * Toggles selection state of an add-on item
-   * @param {number} id - ID of the add-on to toggle
-   */
+
+  // Toggle add-on selection
   const handleAddOnToggle = (id: number) => {
     setAddOns(addOns.map(addon => 
       addon.id === id 
-        ? { ...addon, selected: !addon.selected } 
-        : addon
+        ? { ...addon, selected: !addon.selected }  // Flip the selection for this add-on
+        : addon  // Keep all other add-ons unchanged
     ));
   };
-  
-  /**
-   * Increases jet ski count (max 4)
-   */
+
+  // Jet ski quantity controls (min 1, max 4)
   const incrementJetSkis = () => {
     if (jetSkiCount < 4) {
       setJetSkiCount(jetSkiCount + 1);
     }
   };
   
-  /**
-   * Decreases jet ski count (min 1)
-   */
   const decrementJetSkis = () => {
     if (jetSkiCount > 1) {
       setJetSkiCount(jetSkiCount - 1);
     }
   };
-    /**
-   * Calculates the total booking cost based on selected services and add-ons
-   * @returns {number} Total booking cost in dollars
-   */
+
+  // Calculate total cost based on selected services and add-ons
   const calculateTotal = () => {
-    let total = 0;
+    let total = 0;  // Start with zero and build up the total
     
-    // Base price based on services
+    // BASE SERVICE PRICING - Check which main services are selected
     if (selectedServices.includes('jetski')) {
-      total += 130 * jetSkiCount; // $130 per jet ski for 30 minutes
+      total += 130 * jetSkiCount; // $130 per jet ski × quantity selected
     }
     
     if (selectedServices.includes('aqualounge')) {
-      total += 300; // $300 for 2-hour Aqua Lounge package
+      total += 300; // Fixed $300 for the 2-hour Aqua Lounge experience
     }
     
     if (selectedServices.includes('tours')) {
       total += 220; // $220 per hour for guided tours
     }
     
-    // Add-on costs
+    // ADD-ON PRICING - Loop through all possible add-ons
     addOns.forEach(addon => {
-      if (addon.selected) {
+      if (addon.selected) {  // Only add cost if user selected this add-on
         total += addon.price;
       }
     });
     
-    return total;
-  };
-    /**
-   * Handles booking confirmation
-   * Validates required fields, generates booking reference, and shows confirmation modal
-   */  
+    return total; // Return the final calculated total
+  };  
+
+  // Handle booking confirmation with validation and data processing
   const handleConfirmBooking = async () => {
-    console.log('handleConfirmBooking start');
+    console.log('🎯 Starting booking confirmation process');
     
+    // VALIDATION STEP 1: Check if user selected any services
     if (selectedServices.length === 0) {
       Alert.alert('Selection Required', 'Please select at least one service type.');
       return;
     }
     
+    // VALIDATION STEP 2: Check if user is properly authenticated
     if (!user || !user.uid) {
       Alert.alert('Authentication Error', 'Please log in again before booking.');
       return;
     }
     
-    // Check if waiver has been completed
+    // VALIDATION STEP 3: Check if legal waiver has been completed
     if (!waiverCompleted) {
       Alert.alert(
         'Waiver Required',
@@ -277,55 +210,70 @@ function BookingScreen() {
       return;
     }
     
-    // Generate random booking reference with 'BK-' prefix
+    // STEP 4: Generate unique booking reference number
+    // Format: BK-123456 (BK prefix + 6 random digits)
     const ref = 'BK-' + Math.floor(100000 + Math.random() * 900000);
     setBookingReference(ref);
+    console.log('📝 Generated booking reference:', ref);
     
     try {
-      // Create booking object with all relevant details
+      // STEP 5: Create comprehensive booking data object
       const bookingData = {
+        // User identification
         userId: user.uid,
         userEmail: user.email,
+        
+        // Booking details
         reference: ref,
-        date: selectedDate.toISOString(),
+        date: selectedDate.toISOString(),      // Convert to string for database storage
         time: selectedTime.toISOString(),
-        serviceTypes: selectedServices,
+        serviceTypes: selectedServices,       // Array of selected services
         jetSkiQuantity: selectedServices.includes('jetski') ? jetSkiCount : 0,
+        
+        // Add-ons processing: filter only selected items and clean up the data
         addOns: addOns.filter(addon => addon.selected).map(addon => ({
           id: addon.id,
           name: addon.name,
           price: addon.price
         })),
+        
+        // Financial and status information
         totalAmount: calculateTotal(),
         status: 'confirmed',
         createdAt: new Date().toISOString(),
       };
       
-      console.log('Preparing booking:', bookingData);      // Always store locally first to ensure we have a backup (except on web)
+      console.log('📦 Preparing booking data:', bookingData);
+      
+      // STEP 6: Save locally first (offline-first approach)
+      // This ensures we never lose a booking, even if internet fails
       if (Platform.OS !== 'web') {
         await AsyncStorage.setItem(`booking_${ref}`, JSON.stringify(bookingData));
-        console.log('Booking saved to local storage');
+        console.log('💾 Booking saved to device storage');
       } else {
-        console.log('Web platform detected - skipping AsyncStorage operation');
-      }// First check if we're online to decide how to handle the booking
+        console.log('🌐 Web platform detected - skipping local storage');
+      }      // STEP 7: Advanced network handling and Firebase sync
+      // This section demonstrates professional error handling and offline capabilities
+      
+      // Network connectivity check with timeout
       const checkConnection = async () => {
         try {
-          const isOnline = await checkConnectionWithTimeout(3000); // Check with a timeout
+          const isOnline = await checkConnectionWithTimeout(3000);
           return isOnline;
         } catch (error) {
-          console.log('Network connection check failed:', error);
-          return false; // Assume offline if the check fails
+          console.log('🔌 Network check failed:', error);
+          return false; // Assume offline if check fails
         }
       };
       
-      // Try to save to Firestore with better error handling
+      // Smart Firebase saving with fallback to offline queue
       const saveToFirebase = async () => {
         const isOnline = await checkConnection();
-        console.log('Network status check result:', isOnline ? 'online' : 'offline');
+        console.log('🌐 Network status:', isOnline ? 'ONLINE' : 'OFFLINE');
         
         if (!isOnline) {
-          console.log('Device is offline, saving to queue for later sync');
-          // Add directly to offline queue
+          console.log('📤 Device offline - queueing booking for later sync');
+          // Add to offline queue for automatic sync when internet returns
           await addToOfflineQueue({
             type: 'booking',
             data: bookingData
@@ -334,25 +282,26 @@ function BookingScreen() {
         }
         
         try {
-          // Try to save to Firestore with timeout for better reliability
+          // PROFESSIONAL TIMEOUT HANDLING
+          // We race the Firebase save against a timeout to prevent hanging
           const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Firestore operation timed out')), 8000); // Increased timeout
+            setTimeout(() => reject(new Error('Firestore operation timed out')), 8000);
           });
           
           const savePromise = addDoc(collection(db, 'bookings'), bookingData);
           
-          // Race between the timeout and the save operation
+          // Race between timeout and save - whichever completes first wins
           const result: any = await Promise.race([savePromise, timeoutPromise]);
           
           if (result && result.id) {
-            console.log('Booking saved to Firestore with ID:', result.id);
+            console.log('✅ Booking saved to Firebase with ID:', result.id);
             return true;
           } else {
-            throw new Error('Invalid Firestore response');
+            throw new Error('Invalid Firebase response');
           }
         } catch (firestoreError: any) {
-          console.error('Firestore error:', firestoreError.message || firestoreError);
-          // Add to offline queue for later sync
+          console.error('❌ Firebase save failed:', firestoreError.message || firestoreError);
+          // Graceful fallback: save to offline queue for later retry
           await addToOfflineQueue({
             type: 'booking',
             data: bookingData
@@ -361,15 +310,18 @@ function BookingScreen() {
         }
       };
 
-      // Try to save to Firestore but don't block the UI
+      // STEP 8: Non-blocking Firebase save
+      // We don't make the user wait for Firebase - show confirmation immediately
       saveToFirebase().then(success => {
         if (!success) {
-          console.log('Failed to save to Firestore, but booking is stored locally');
+          console.log('⚠️  Firebase save failed, but booking is safely stored locally');
         }
       });
       
-      // Show confirmation immediately after local save, don't wait for Firestore
+      // STEP 9: Show success confirmation immediately
+      // Users see confirmation right away, Firebase sync happens in background
       setShowConfirmation(true);
+      console.log('🎉 Booking process completed successfully');
       
     } catch (error) {
       console.error('Error in booking process:', error);
@@ -765,14 +717,11 @@ function BookingScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
-    </SafeAreaView>
+      </Modal>    </SafeAreaView>
   );
 }
 
-/**
- * Styles for the BookingScreen component
- */
+// Styles for the BookingScreen component
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -1125,13 +1074,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     flex: 1,
-  },
-  waiverLinkText: {
+  },  waiverLinkText: {
     color: '#0066cc',
     fontWeight: '600',
     textDecorationLine: 'underline',
     marginLeft: 8,
   },
-});
+}); // Close StyleSheet.create
 
 export default withProtectedRoute(BookingScreen);

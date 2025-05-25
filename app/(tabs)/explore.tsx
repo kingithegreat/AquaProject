@@ -1,19 +1,4 @@
-/**
- * AQUA360 EXPLORE PAGE
- * ===================
- * 
- * PRESENTATION TALKING POINTS:
- * - Discover new swimming locations and features
- * - Integration with mapping services for location discovery
- * - Community-driven content and recommendations
- * - Advanced search and filtering capabilities
- * 
- * TECHNICAL FEATURES:
- * - Clean, accessible UI following Aqua360 design system
- * - Proper text component usage (all text in <Text> components)
- * - Responsive layout that works on different screen sizes
- * - Integration ready for map services and location APIs
- */
+// Aqua360 Explore page
 
 import React from 'react';
 import { StyleSheet, ScrollView, View, TouchableOpacity } from 'react-native';

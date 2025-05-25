@@ -1,31 +1,4 @@
-/**
- * AQUA 360° - HOME SCREEN (MAIN LANDING PAGE)
- * ===========================================
- * 
- * PRESENTATION HIGHLIGHTS:
- * - Complete jet ski rental business mobile app
- * - Modern video-first hero section with interactive controls
- * - Real-time customer reviews from Firebase database
- * - User authentication with personalized experience
- * - Quick navigation to all business features
- * - Professional glass morphism design system
- * 
- * BUSINESS FEATURES DEMONSTRATED:
- * ✅ Customer authentication & account management
- * ✅ Real-time review system with star ratings
- * ✅ Video marketing with interactive controls
- * ✅ Direct booking system integration
- * ✅ Legal waiver management
- * ✅ AI customer support access
- * ✅ Cross-platform mobile experience
- * 
- * TECHNICAL ACHIEVEMENTS:
- * ✅ Firebase real-time database integration
- * ✅ Expo video playback with custom controls
- * ✅ Performance optimized image preloading
- * ✅ Responsive design for all screen sizes
- * ✅ Professional authentication flow
- */
+// Aqua360 Homepage - Main landing screen
 
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { StyleSheet, ScrollView, TouchableOpacity, View, Image, Dimensions, Platform, ActivityIndicator } from 'react-native';
@@ -44,7 +17,7 @@ import ReviewCard from '@/components/ui/ReviewCard';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/config/firebase';
 
-// Pre-load images to prevent rendering delays
+// Preload images for better performance
 const preloadImages = async () => {
   try {
     const images = [
@@ -59,7 +32,7 @@ const preloadImages = async () => {
   }
 };
 
-// Glass effect component
+// Cross-platform glass morphism component
 interface GlassBackgroundProps {
   style?: any;
   intensity?: number;
@@ -68,15 +41,14 @@ interface GlassBackgroundProps {
 }
 
 function GlassBackground({ style, intensity = 50, children, noRadius = false }: GlassBackgroundProps) {
-  const isIOS = Platform.OS === 'ios';
-  
+  const isIOS = Platform.OS === 'ios';  
   if (isIOS) {
     return (
       <BlurView 
-        intensity={intensity} 
-        tint="light" 
+        intensity={intensity}
+        tint="light"
         style={[
-          styles.glassEffect, 
+          styles.glassEffect,
           noRadius ? styles.noRadius : null,
           style
         ]}
@@ -85,11 +57,10 @@ function GlassBackground({ style, intensity = 50, children, noRadius = false }: 
       </BlurView>
     );
   } else {
-    // Fallback for Android (no blur, just semi-transparent bg)
     return (
       <View 
         style={[
-          styles.glassEffectAndroid, 
+          styles.glassEffectAndroid,
           noRadius ? styles.noRadius : null,
           style
         ]}
@@ -100,7 +71,7 @@ function GlassBackground({ style, intensity = 50, children, noRadius = false }: 
   }
 }
 
-// Define Review interface
+// Review data structure
 interface Review {
   id?: string;
   author: string;
@@ -109,17 +80,19 @@ interface Review {
   createdAt?: Date;
 }
 
-export default function HomeScreen() {  
-  const { user, logout, loading } = useAuth();
+export default function HomeScreen() {    const { user, logout, loading } = useAuth();
+  
+  // State management
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [reviewsError, setReviewsError] = useState<string | null>(null);
-  const videoRef = useRef<Video>(null);
-  const [videoStatus, setVideoStatus] = useState<AVPlaybackStatus>({} as AVPlaybackStatus);
-  const [videoError, setVideoError] = useState<boolean>(false);
   
-  // Video play/pause toggle function
+  // Video player refs and state
+  const videoRef = useRef<Video>(null);
+  const [videoStatus, setVideoStatus] = useState<AVPlaybackStatus>({} as AVPlaybackStatus);  const [videoError, setVideoError] = useState<boolean>(false);
+    
+  // Video playback controls
   const toggleVideoPlayback = async () => {
     if (videoRef.current) {
       try {
@@ -136,13 +109,11 @@ export default function HomeScreen() {
     }
   };
   
-  // Handle video playback errors
   const handleVideoError = () => {
     console.error('Video playback error occurred');
     setVideoError(true);
-  };
-  
-  // Function to fetch reviews from Firestore
+  };  
+  // Fetch reviews from Firebase
   const fetchReviews = async () => {
     try {
       setReviewsLoading(true);
@@ -151,7 +122,7 @@ export default function HomeScreen() {
       const reviewsQuery = query(
         collection(db, 'reviews'),
         orderBy('createdAt', 'desc'),
-        limit(3) // Only get the 3 most recent reviews for the homepage
+        limit(3)
       );
       
       const querySnapshot = await getDocs(reviewsQuery);
@@ -179,35 +150,28 @@ export default function HomeScreen() {
       setReviewsError("Couldn't load reviews. Please try again later.");
     } finally {
       setReviewsLoading(false);
-    }
-  };
-  
-  // Preload images when component mounts
+    }  };
+    
+  // Lifecycle effects
   useEffect(() => {
     preloadImages().then(() => setImagesLoaded(true));
   }, []);
   
-  // Fetch reviews from Firestore
   useEffect(() => {
     fetchReviews();
   }, []);
   
-  // Auto-play video when component mounts
   useEffect(() => {
     if (videoRef.current) {
-      // Auto-play the video when component mounts
       videoRef.current.playAsync();
     }
     
     return () => {
-      // Cleanup on unmount
       if (videoRef.current) {
         videoRef.current.unloadAsync();
       }
-    };
-  }, []);
+    };  }, []);
   
-  // Reset image loading state when screen gains focus
   useFocusEffect(
     useCallback(() => {
       if (!imagesLoaded) {
@@ -217,40 +181,18 @@ export default function HomeScreen() {
     }, [imagesLoaded])
   );
 
-  // Handle user logout
+  // Navigation functions
   const handleLogout = async () => {
     await logout();
-    // No need to navigate - the auth state change will trigger UI updates
   };
 
-  // Navigation handlers
-  const handleLogin = () => {
-    router.push('/login');
-  };
-
-  const handleSignup = () => {
-    router.push('/signup');
-  };
-  
-  const handleAboutUs = () => {
-    router.push('/about-us');
-  };
-
-  const handleWaiver = () => {
-    router.push('/waiver');
-  };
-
-  const handleAiAssist = () => {
-    router.push('/ai-assist');
-  };
-
-  const handleBooking = () => {
-    router.push('/booking');
-  };
-
-  const handleSeeAllReviews = () => {
-    router.push('/reviews');
-  };
+  const handleLogin = () => router.push('/login');
+  const handleSignup = () => router.push('/signup');
+  const handleAboutUs = () => router.push('/about-us');
+  const handleWaiver = () => router.push('/waiver');
+  const handleAiAssist = () => router.push('/ai-assist');
+  const handleBooking = () => router.push('/booking');
+  const handleSeeAllReviews = () => router.push('/reviews');
 
   const handleMyAccount = () => {
     if (user) {
@@ -260,10 +202,8 @@ export default function HomeScreen() {
         pathname: '/login',
         params: { redirect: '/account' }
       });
-    }
-  };
+    }  };
 
-  // If images or auth are still loading, show loading indicator
   if (loading || !imagesLoaded) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
@@ -309,10 +249,35 @@ export default function HomeScreen() {
       <ScrollView 
         style={styles.scrollView} 
         contentContainerStyle={styles.scrollViewContent}
-      >
-        <ThemedView style={styles.container}>
-          {/* Enhanced About Us Button with Image */}
-          <TouchableOpacity style={styles.aboutUsButton} onPress={handleAboutUs}>            <Video
+      >        <ThemedView style={styles.container}>
+          {/* 
+            INTERACTIVE VIDEO HERO SECTION
+            =============================
+            This is the main visual element of the homepage - a large video that users can interact with.
+            It demonstrates several advanced mobile development concepts:
+            
+            1. VIDEO COMPONENT: Uses Expo AV library to display MP4 videos in React Native
+            2. FALLBACK HANDLING: If video fails to load, it shows a static image instead
+            3. LOADING STATES: Shows spinner while video is loading
+            4. USER CONTROLS: Users can tap to play/pause the video
+            5. NAVIGATION: Clicking the video navigates to the About Us page
+          */}
+          <TouchableOpacity style={styles.aboutUsButton} onPress={handleAboutUs}>
+            {/* 
+              MAIN VIDEO PLAYER
+              ================
+              This Video component from Expo AV handles all video playback functionality.
+              Key props explained:
+              - ref={videoRef}: Allows us to control the video programmatically (play/pause)
+              - source: Path to the MP4 video file stored in our assets folder
+              - resizeMode: How to fit the video in the container (COVER = fills space, may crop)
+              - isLooping: Video repeats automatically when it ends
+              - shouldPlay: Video starts playing immediately when loaded
+              - isMuted: Video plays without sound (good for autoplay UX)
+              - onPlaybackStatusUpdate: Callback that runs when video state changes (playing, paused, loaded, etc.)
+              - onError: Callback that runs if video fails to load
+            */}
+            <Video
               ref={videoRef}
               style={styles.aboutUsImage}
               source={require('../../assets/video/Biscuit-ride.mp4')}
@@ -322,20 +287,59 @@ export default function HomeScreen() {
               isMuted={true}
               onPlaybackStatusUpdate={status => setVideoStatus(() => status)}
               onError={() => setVideoError(true)}
-            />            {videoError ? (
+            />
+            
+            {/* 
+              FALLBACK IMAGE SYSTEM
+              ====================
+              If the video fails to load (poor internet, unsupported format, etc.),
+              we show a static image instead. This is called "graceful degradation" -
+              the app still works even if one feature fails.
+            */}
+            {videoError ? (
               <Image 
                 source={require('../../assets/images/about-us-image.webp')}
                 style={styles.aboutUsImage}
                 resizeMode="cover"
               />
             ) : videoStatus && !('isLoaded' in videoStatus && videoStatus.isLoaded) && (
+              /* 
+                LOADING OVERLAY
+                ==============
+                While the video is still loading, we show a spinning indicator
+                overlaid on top of the video area. This gives users visual feedback
+                that something is happening.
+              */
               <View style={styles.videoLoadingOverlay}>
                 <ActivityIndicator size="large" color="#ffffff" />
-              </View>            )}
+              </View>
+            )}
+            
+            {/* 
+              GLASS MORPHISM TEXT OVERLAY
+              ==========================
+              This creates a semi-transparent overlay with text on top of the video.
+              The GlassBackground component uses different techniques on iOS vs Android:
+              - iOS: Real blur effect using native BlurView
+              - Android: Semi-transparent background (Android doesn't support native blur)
+            */}
             <GlassBackground style={styles.aboutUsTextContainer} intensity={40}>
               <ThemedText style={styles.aboutUsButtonText}>About Us</ThemedText>
             </GlassBackground>
-            {/* Play/Pause Button Overlay */}
+            
+            {/* 
+              PLAY/PAUSE CONTROL BUTTON
+              ========================
+              This floating button appears in the bottom-right corner of the video.
+              It shows different icons based on the video state:
+              - Play icon (▶) when video is paused or not loaded
+              - Pause icon (⏸) when video is currently playing
+              
+              The complex conditional logic checks:
+              1. Is there a video error? (if so, don't show button)
+              2. Is the video loaded and playing? (show pause icon)
+              3. Otherwise show play icon
+            */}
             {!videoError && (
               <TouchableOpacity 
                 style={styles.videoControlButton}
@@ -350,7 +354,16 @@ export default function HomeScreen() {
             )}
           </TouchableOpacity>
 
-          {/* Action Buttons Section - Modern buttons without container */}
+          {/* 
+            MAIN NAVIGATION BUTTONS
+            =======================
+            These four buttons provide quick access to the main app features.
+            Each button follows the same pattern:
+            1. TouchableOpacity for tap handling
+            2. Icon placeholder with Ionicons
+            3. Text label
+            4. onPress handler that navigates to different screens
+          */}
           <View style={styles.actionButtonsWrapper}>
             <TouchableOpacity style={styles.actionButton} onPress={handleWaiver}>
               <View style={styles.buttonIconPlaceholder}>

@@ -1,12 +1,20 @@
 rules_version = '2';
 
 service cloud.firestore {
-  match /databases/{database}/documents {
-    // Allow read access to all users for reviews
+  match /databases/{database}/documents {    // Allow read access to all users for reviews
     match /reviews/{reviewId} {
       allow read: if true;
-      // But only allow write if the user is authenticated
+      // Allow authenticated users to write reviews
       allow write: if request.auth != null;
+      // Alternative: Allow anonymous reviews but mark them for moderation
+      // allow create: if request.auth != null || 
+      //   (request.resource.data.keys().hasAll(['author', 'email', 'text', 'rating']) &&
+      //    request.resource.data.author is string &&
+      //    request.resource.data.email is string &&
+      //    request.resource.data.text is string &&
+      //    request.resource.data.rating is number &&
+      //    request.resource.data.rating >= 1 &&
+      //    request.resource.data.rating <= 5);
     }
     
     // For bookings, require authentication for both read and write
