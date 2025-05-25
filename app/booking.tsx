@@ -50,7 +50,7 @@ function BookingScreen() {
   
   // State to track number of jet skis (1-4)
   const [jetSkiCount, setJetSkiCount] = useState(1);
-  const [jetSkiDuration, setJetSkiDuration] = useState(1);  // Duration in hours
+  const [jetSkiDuration, setJetSkiDuration] = useState(0.5);  // Duration in hours (0.5,1,2,3,4)
 
   // Available add-ons with pricing and selection state
   const [addOns, setAddOns] = useState([
@@ -155,9 +155,9 @@ function BookingScreen() {
     }
   };
 
-  // Duration controls for jet skis (min 1 hour)
-  const incrementJetSkiDuration = () => { if (jetSkiDuration < 8) setJetSkiDuration(d => d + 1); };
-  const decrementJetSkiDuration = () => { if (jetSkiDuration > 1) setJetSkiDuration(d => d - 1); };
+  // Duration controls for jet skis (min 0.5h, max 4h in 0.5h steps)
+  const incrementJetSkiDuration = () => { if (jetSkiDuration < 4) setJetSkiDuration(d => Math.min(4, d + 0.5)); };
+  const decrementJetSkiDuration = () => { if (jetSkiDuration > 0.5) setJetSkiDuration(d => Math.max(0.5, d - 0.5)); };
 
   // Calculate total cost based on selected services and add-ons
   const calculateTotal = () => {
@@ -475,29 +475,31 @@ function BookingScreen() {
             <ThemedText type="heading2" style={styles.sectionTitle}>Jet Ski Duration</ThemedText>
             <ThemedText style={styles.labelText}>Select duration (hours):</ThemedText>
             <View style={styles.quantitySelector}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.quantityButton}
                 onPress={decrementJetSkiDuration}
-                disabled={jetSkiDuration <= 1}
+                disabled={jetSkiDuration <= 0.5}
               >
-                <Ionicons 
-                  name="remove" 
-                  size={24} 
-                  color={jetSkiDuration <= 1 ? '#ccc' : Colors.light.palette.secondary.main} 
+                <Ionicons
+                  name="remove"
+                  size={24}
+                  color={jetSkiDuration <= 0.5 ? '#ccc' : Colors.light.palette.secondary.main}
                 />
               </TouchableOpacity>
               <View style={styles.quantityTextContainer}>
-                <ThemedText style={styles.jetSkiCountText}>{jetSkiDuration}h</ThemedText>
+                <ThemedText style={styles.jetSkiCountText}>
+                  {jetSkiDuration === 0.5 ? '30m' : `${jetSkiDuration}h`}
+                </ThemedText>
               </View>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.quantityButton}
                 onPress={incrementJetSkiDuration}
-                disabled={jetSkiDuration >= 8}
+                disabled={jetSkiDuration >= 4}
               >
-                <Ionicons 
-                  name="add" 
-                  size={24} 
-                  color={jetSkiDuration >= 8 ? '#ccc' : Colors.light.palette.secondary.main} 
+                <Ionicons
+                  name="add"
+                  size={24}
+                  color={jetSkiDuration >= 4 ? '#ccc' : Colors.light.palette.secondary.main}
                 />
               </TouchableOpacity>
             </View>
