@@ -1,3 +1,6 @@
+// Route protection - blocks access to certain screens unless user is logged in
+// Automatically redirects users to login screen if they try to access protected content
+
 import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { router, usePathname } from 'expo-router';
@@ -5,26 +8,25 @@ import { router, usePathname } from 'expo-router';
 import { useAuth } from './useAuth';
 import { ThemedText } from '@/components/ThemedText';
 
-// This component is used to wrap pages that require authentication
+// This component wraps screens that require login (like booking, account, etc.)
 export function withProtectedRoute<T extends JSX.IntrinsicAttributes>(
   Component: React.ComponentType<T>,
   options?: { redirectOnlyForBooking?: boolean }
 ) {
   return function ProtectedRoute(props: T) {
-    const { user, loading } = useAuth();
-    const currentPath = usePathname();
+    const { user, loading } = useAuth(); // Check if someone is logged in
+    const currentPath = usePathname(); // What page are we on?
     const isBookingPath = currentPath === '/booking';
 
     useEffect(() => {
-      // If not loading and no user is found, redirect to login
-      if (!loading && !user) {
-        // Only redirect if this is a booking page or the options don't specify redirectOnlyForBooking
+      // If we're done checking and no one is logged in, send them to login
+      if (!loading && !user) {        // Only redirect for certain pages or if this is a booking page
         if (!options?.redirectOnlyForBooking || isBookingPath) {
-          // Store the path the user was trying to access for redirect after login
+          // Remember where they were trying to go so we can send them back after login
           if (currentPath) {
             router.replace({
               pathname: '/login',
-              params: { redirect: currentPath }
+              params: { redirect: currentPath } // Tell login where to go back to
             });
           } else {
             router.replace('/login');

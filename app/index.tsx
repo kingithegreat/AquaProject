@@ -1,6 +1,7 @@
 // Aqua360 Homepage - Main landing screen
+// Main homepage combining authentication, video playback, reviews, and navigation.
 
-// Importing necessary libraries and components for the homepage
+// Import all the React Native components and libraries we need
 import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, ScrollView, TouchableOpacity, View, Image, Dimensions, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,18 +9,24 @@ import { Stack, router, useFocusEffect } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { Asset } from 'expo-asset';
 import { StatusBar } from 'expo-status-bar';
+
+// Firebase imports for real-time database operations
 import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
+
+// UI and icon libraries
 import { Ionicons } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer } from 'expo-video';
 
+// Custom components and utilities specific to Aqua360
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import ReviewCard from '@/components/ui/ReviewCard';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/config/firebase';
 
-// Preload images for better performance
-// This function ensures that images are downloaded and cached before they are displayed on the screen.
+/**
+ * Preloads images for better performance.
+ */
 const preloadImages = async () => {
   try {
     const images = [
@@ -34,15 +41,14 @@ const preloadImages = async () => {
   }
 };
 
-// Cross-platform glass morphism component
-// This component creates a semi-transparent, blurred background effect.
-// On iOS, it uses the native BlurView for a real blur effect.
-// On Android, it uses a semi-transparent background as a fallback.
+/**
+ * Glass morphism component for modern UI effects.
+ */
 interface GlassBackgroundProps {
-  style?: any; // Custom styles for the glass effect
-  intensity?: number; // Intensity of the blur effect (iOS only)
+  style?: any; // Custom styles for the glass effect container
+  intensity?: number; // Blur intensity (0-100, iOS only)
   children: React.ReactNode; // Content to display inside the glass effect
-  noRadius?: boolean; // Whether to remove border radius
+  noRadius?: boolean; // Disable border radius for header/footer elements
 }
 
 function GlassBackground({ style, intensity = 50, children, noRadius = false }: GlassBackgroundProps) {
@@ -76,33 +82,58 @@ function GlassBackground({ style, intensity = 50, children, noRadius = false }: 
   }
 }
 
-// Review data structure
-// This defines the shape of a review object, which includes details like the author's name, review text, rating, and creation date.
+/**
+ * TypeScript interface for customer reviews.
+ */
 interface Review {
-  id?: string; // Unique identifier for the review (optional)
-  author: string; // Name of the person who wrote the review
-  text: string; // The content of the review
-  rating: number; // Rating given by the reviewer (e.g., 1-5 stars)
-  createdAt?: Date; // Date when the review was created (optional)
+  id?: string; // Firebase document ID (optional for new reviews)
+  author: string; // Customer name who wrote the review
+  text: string; // The actual review content/testimonial
+  rating: number; // Star rating (1-5 scale)
+  createdAt?: Date; // Review creation timestamp
 }
 
-export default function HomeScreen() {    const { user, logout, loading } = useAuth();
+/**
+ * Main homepage component.
+ */
+export default function HomeScreen() {
+  // AUTHENTICATION STATE: Manages user login status and loading states
+  const { user, logout, loading } = useAuth();
   
-  // State management
+  /**
+   * COMPONENT STATE MANAGEMENT
+   * ==========================
+   * Manages multiple asynchronous operations and UI states:
+   */
+  // Image preloading state for performance optimization
   const [imagesLoaded, setImagesLoaded] = useState(false);
+  
+  // Customer reviews data and loading states
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [reviewsError, setReviewsError] = useState<string | null>(null);
   
-  // Video player with new expo-video API
+  /**
+   * VIDEO PLAYBACK SYSTEM
+   * =====================
+   * Implements advanced video features using Expo's latest video API:
+   * - Automatic looping for continuous engagement
+   * - Muted autoplay (mobile best practice)
+   * - User-controlled play/pause functionality
+   * - Error handling with graceful degradation
+   */
   const player = useVideoPlayer(require('../assets/video/Biscuit-ride.mp4'), (player) => {
-    player.loop = true;
-    player.muted = true;
-    player.play();
+    player.loop = true;      // Continuous playback for engagement
+    player.muted = true;     // Respectful autoplay (no sound)
+    player.play();           // Start immediately when loaded
   });
   const [videoError, setVideoError] = useState<boolean>(false);
     
-  // Video playback controls
+  /**
+   * VIDEO CONTROL FUNCTIONS
+   * =======================
+   * Provides user control over video playback with error handling
+   */
   const toggleVideoPlayback = () => {
     try {
       if (player.playing) {
@@ -116,11 +147,24 @@ export default function HomeScreen() {    const { user, logout, loading } = useA
     }
   };
   
+  // Handle video playback errors gracefully
   const handleVideoError = () => {
     console.error('Video playback error occurred');
     setVideoError(true);
   };
-  // Fetch reviews from Firebase
+
+  /**
+   * FIREBASE REVIEW SYSTEM
+   * ======================
+   * Fetches customer reviews from Firestore with comprehensive error handling.
+   * Implements pagination (limit 3) for performance and loads newest reviews first.
+   * 
+   * QUERY STRATEGY:
+   * - Orders by creation date (newest first)
+   * - Limits to 3 reviews for homepage preview
+   * - Handles missing fields gracefully with defaults
+   * - Provides user feedback for loading and error states
+   */
   const fetchReviews = async () => {
     try {
       setReviewsLoading(true);
@@ -149,34 +193,48 @@ export default function HomeScreen() {    const { user, logout, loading } = useA
           console.warn('Error processing review document:', err);
         }
       });
-      
-      setReviews(fetchedReviews);
+        setReviews(fetchedReviews);
     } catch (error: any) {
       console.error('Error fetching reviews:', error);
       setReviews([]);
       setReviewsError("Couldn't load reviews. Please try again later.");
     } finally {
       setReviewsLoading(false);
-    }  };
+    }
+  };
     
-  // Lifecycle effects
+  /**
+   * COMPONENT LIFECYCLE MANAGEMENT
+   * ==============================
+   * Coordinates multiple asynchronous operations during component lifecycle:
+   */
+  
+  // Initialize image preloading on component mount
   useEffect(() => {
     preloadImages().then(() => setImagesLoaded(true));
   }, []);
-    useEffect(() => {
+  
+  // Fetch reviews data on component mount
+  useEffect(() => {
     fetchReviews();
   }, []);
   
+  // Re-preload images when screen comes back into focus (navigation)
   useFocusEffect(
     useCallback(() => {
       if (!imagesLoaded) {
         preloadImages().then(() => setImagesLoaded(true));
       }
-      return () => {};
+      return () => {}; // Cleanup function (currently no cleanup needed)
     }, [imagesLoaded])
   );
 
-  // Navigation functions
+  /**
+   * NAVIGATION HANDLERS
+   * ==================
+   * Centralized navigation functions for all app sections.
+   * Each function uses Expo Router for type-safe navigation.
+   */
   const handleLogout = async () => {
     await logout();
   };
@@ -189,37 +247,66 @@ export default function HomeScreen() {    const { user, logout, loading } = useA
   const handleBooking = () => router.push('/booking');
   const handleSeeAllReviews = () => router.push('/reviews');
 
+  // Smart account navigation: redirects to login if not authenticated
   const handleMyAccount = () => {
     if (user) {
       router.push('/account');
     } else {
       router.push({
         pathname: '/login',
-        params: { redirect: '/account' }
+        params: { redirect: '/account' } // Redirect back after login
       });
-    }  };
+    }
+  };
 
-  if (loading || !imagesLoaded) {
-    return (
+  /**
+   * LOADING STATE MANAGEMENT
+   * ========================
+   * Shows loading screen while critical resources are being prepared.
+   * Prevents showing incomplete UI to users.
+   */
+
+  if (loading || !imagesLoaded) {    return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#21655A" />
         <ThemedText style={styles.loadingText}>Loading Aqua 360°...</ThemedText>
       </SafeAreaView>
     );
   }
-    return (
+  
+  /**
+   * MAIN RENDER FUNCTION
+   * ====================
+   * Renders the complete homepage with multiple sections:
+   * 1. Dynamic authentication header
+   * 2. Interactive video hero section  
+   * 3. Main navigation buttons
+   * 4. Customer reviews carousel
+   * 5. Business information footer
+   */
+  return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <StatusBar style="light" backgroundColor="#21655A" />
       <Stack.Screen options={{ headerShown: false }} />
-      {/* Header Section - no rounded borders */}
+      
+      {/* 
+        DYNAMIC AUTHENTICATION HEADER
+        =============================
+        Displays different UI based on user authentication state:
+        - Loading: Shows loading indicator
+        - Logged in: Shows user email and account access
+        - Logged out: Shows login and signup buttons
+        
+        Uses glass morphism effect for modern appearance
+      */}
       <GlassBackground style={styles.header} intensity={80} noRadius={true}>
         {loading ? (
-          // Show placeholder during authentication loading
+          // Authentication state is still being determined
           <View style={styles.headerContent}>
             <ThemedText style={styles.loadingText}>Loading...</ThemedText>
           </View>
         ) : user ? (
-          // User is logged in - show email and account button
+          // User is authenticated - show personalized header
           <View style={styles.headerContent}>
             <ThemedText style={styles.userEmail} numberOfLines={1}>
               {user.email}
@@ -229,7 +316,7 @@ export default function HomeScreen() {    const { user, logout, loading } = useA
             </TouchableOpacity>
           </View>
         ) : (
-          // User is not logged in - show login and signup buttons
+          // User is not authenticated - show authentication options
           <View style={styles.headerContent}>
             <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
               <ThemedText style={styles.loginButtonText}>Login</ThemedText>
@@ -247,17 +334,36 @@ export default function HomeScreen() {    const { user, logout, loading } = useA
       >        <ThemedView style={styles.container}>
           {/* 
             INTERACTIVE VIDEO HERO SECTION
-            =============================
-            This is the main visual element of the homepage - a large video that users can interact with.
-            It demonstrates several advanced mobile development concepts:
+            ==============================
+            The centerpiece of the homepage featuring:
             
-            1. VIDEO COMPONENT: Uses Expo AV library to display MP4 videos in React Native
-            2. FALLBACK HANDLING: If video fails to load, it shows a static image instead
-            3. LOADING STATES: Shows spinner while video is loading
-            4. USER CONTROLS: Users can tap to play/pause the video
-            5. NAVIGATION: Clicking the video navigates to the About Us page
+            🎥 VIDEO TECHNOLOGY:
+            - Expo Video API for modern playback controls
+            - MP4 format for universal compatibility
+            - Automatic looping for continuous engagement
+            - Muted autoplay following mobile best practices
+            
+            🎯 USER INTERACTION:
+            - Tap-to-play/pause functionality
+            - Navigation to About Us section on tap
+            - Floating control button for easy access
+            
+            🛡️ FALLBACK SYSTEM:
+            - Static image backup if video fails to load
+            - Graceful error handling maintains app stability
+            - Loading states provide user feedback
+            
+            🎨 VISUAL DESIGN:
+            - Glass morphism text overlay
+            - Responsive sizing based on screen dimensions
+            - Shadow effects for depth and professionalism
+            
+            BUSINESS IMPACT:
+            This video showcases Aqua360's services in action, building excitement
+            and trust while demonstrating the quality of the experience customers
+            can expect. Video content significantly increases engagement rates.
           */}
-          <TouchableOpacity style={styles.aboutUsButton} onPress={handleAboutUs}>            {/* 
+          <TouchableOpacity style={styles.aboutUsButton} onPress={handleAboutUs}>{/* 
               MAIN VIDEO PLAYER
               ================
               This VideoView component from expo-video handles all video playback functionality.
@@ -370,7 +476,7 @@ export default function HomeScreen() {    const { user, logout, loading } = useA
             </TouchableOpacity>
           </View>
 
-          {/* Reviews Section */}
+          {/* Reviews section */}
           <ThemedView style={styles.reviewsSection}>
             <View style={styles.reviewsHeader}>
               <ThemedText type="heading2" style={styles.sectionTitle}>

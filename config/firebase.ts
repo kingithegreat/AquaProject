@@ -1,7 +1,11 @@
-// Add global polyfills for URL and crypto
+// Firebase configuration - connects the app to Google's backend services
+// Handles user accounts, data storage, and real-time features
+
+// Polyfills needed for React Native to work with Firebase
 import 'react-native-url-polyfill/auto';
 import 'react-native-get-random-values';
 
+// Firebase imports - the tools we need from Google's Firebase service
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, collection, addDoc, getDocs, query, where, enableIndexedDbPersistence } from 'firebase/firestore';
@@ -9,8 +13,8 @@ import NetInfo from '@react-native-community/netinfo';
 import { Platform } from 'react-native';
 import { safeGetItem, safeSetItem, safeRemoveItem, safeMultiGet } from '../utils/asyncStorageHelper';
 
-// Your Firebase configuration from environment variables
-// This is safer for exposing code and better for different environments
+// Firebase project settings - connects to Aqua360's specific Firebase project
+// These settings tell the app which Firebase project to connect to
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || "AIzaSyDhrik544tBzrcVBgeQU3GMuNaDDB6Bxmw",
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || "year2project-fa35b.firebaseapp.com",
@@ -21,14 +25,13 @@ const firebaseConfig = {
   measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-SPM59SGPKE"
 };
 
-// Initialize Firebase with error handling
+// Connect to Firebase with error handling (in case something goes wrong)
 let app;
 try {
-  // Check if an app instance already exists to prevent duplicate app initialization
-  app = initializeApp(firebaseConfig);
+  app = initializeApp(firebaseConfig); // Start connection to Firebase
   console.log("Firebase initialized successfully");
 } catch (error: any) {
-  if (error.code === 'app/duplicate-app') {
+  if (error.code === 'app/duplicate-app') { // If Firebase is already connected, that's fine
     // App already exists, get the existing instance
     console.warn("Firebase app already exists, using existing instance");
     app = initializeApp(firebaseConfig, "aqua360-app");

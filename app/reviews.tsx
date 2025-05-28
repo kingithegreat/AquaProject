@@ -1,4 +1,5 @@
-// Customer Review System
+// Reviews screen - customers can read reviews and write their own
+// Shows all customer reviews and lets users submit new ones with star ratings
 
 import React, { useState, useRef, useEffect } from 'react';
 import { 

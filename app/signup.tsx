@@ -1,3 +1,6 @@
+// Signup screen where new users create an account
+// Collects email and password, creates new Firebase user account
+
 import React, { useState } from 'react';
 import { StyleSheet, View, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -8,16 +11,17 @@ import { auth } from '@/config/firebase';
 import { ThemedText } from '@/components/ThemedText';
 
 export default function SignupScreen() {
+  // Form data that user fills out
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { redirect } = useLocalSearchParams<{ redirect?: string }>();
+  const [confirmPassword, setConfirmPassword] = useState(''); // Make sure passwords match
+  const [error, setError] = useState(''); // Show error messages if signup fails
+  const [loading, setLoading] = useState(false); // Show loading spinner during signup
+  const { redirect } = useLocalSearchParams<{ redirect?: string }>(); // Where to go after signup
 
+  // Function that runs when user taps "Sign Up" button
   const handleSignUp = async () => {
-    // Reset error state
-    setError('');
+    setError(''); // Clear any previous error messages
     
     // Basic validation
     if (!email.trim() || !password.trim() || !confirmPassword.trim()) {

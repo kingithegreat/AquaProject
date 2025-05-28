@@ -1,3 +1,6 @@
+// Safety waiver screen - users must agree to safety terms before booking activities
+// This is required for legal protection and ensures customers understand the risks
+
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, View, Platform, Dimensions, Alert, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';

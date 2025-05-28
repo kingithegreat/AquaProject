@@ -1,3 +1,6 @@
+// Login screen where users enter their email and password
+// Connects to Firebase authentication to verify user credentials
+
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Image, ActivityIndicator, Animated, Dimensions } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -10,14 +13,15 @@ import { auth, checkConnectionWithTimeout } from '@/config/firebase';
 import { Colors } from '@/constants/Colors';
 
 export default function LoginScreen() {
+  // Form data that user types in
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [isOnline, setIsOnline] = useState(true);
-  const { redirect } = useLocalSearchParams<{ redirect?: string }>();
-  const logoAnimation = new Animated.Value(0);
+  const [error, setError] = useState(''); // Show error messages if login fails
+  const [loading, setLoading] = useState(false); // Show loading spinner during login
+  const [rememberMe, setRememberMe] = useState(false); // Save login for next time
+  const [isOnline, setIsOnline] = useState(true); // Check if device has internet
+  const { redirect } = useLocalSearchParams<{ redirect?: string }>(); // Where to go after login
+  const logoAnimation = new Animated.Value(0); // For animating the logo
   
   // Check for saved credentials on mount
   useEffect(() => {

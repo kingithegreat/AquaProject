@@ -1,6 +1,8 @@
-// Aqua360 Booking System
+// Booking system where customers can book water sports activities
+// This screen handles date/time selection, service selection, and payment
 
 import React, { useState, useEffect } from 'react';
+// React Native components for UI elements, date/time pickers, and modals
 import { 
   StyleSheet, 
   View, 
@@ -17,6 +19,7 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 import { Ionicons } from '@expo/vector-icons';
 import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
 
+// Our custom components and utilities
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
 import { Colors } from '../constants/Colors';
@@ -31,24 +34,25 @@ import {
 } from '@/config/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// BookingScreen component
+// Main booking screen component - only logged-in users can access this
 function BookingScreen() {
-  const router = useRouter();
-  const { user } = useAuth();
+  const router = useRouter(); // For navigating between screens
+  const { user } = useAuth(); // Get current logged-in user info
   
-  // State for tracking waiver completion status
+  // Check if user has completed the safety waiver (required before booking)
   const [waiverCompleted, setWaiverCompleted] = useState(false);
   const [checkingWaiver, setCheckingWaiver] = useState(true);
   
-  // State for date and time selection
+  // Date and time that the customer wants to book
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState(new Date());
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
-    // State for tracking selected service type
+  const [showCalendar, setShowCalendar] = useState(false); // Show/hide date picker
+  const [showTimePicker, setShowTimePicker] = useState(false); // Show/hide time picker
+  
+  // What services the customer wants to book (jetski, parasailing, etc.)
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   
-  // State to track number of jet skis (1-4)
+  // How many jet skis they want (between 1 and 4)
   const [jetSkiCount, setJetSkiCount] = useState(1);
   const [jetSkiDuration, setJetSkiDuration] = useState(0.5);  // Duration in hours (0.5,1,2,3,4)
 

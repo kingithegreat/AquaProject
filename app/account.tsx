@@ -1,3 +1,6 @@
+// User account screen - shows user profile, bookings, and account management
+// Users can view their booking history, check waiver status, and logout here
+
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, View, Image, Dimensions, Alert } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';

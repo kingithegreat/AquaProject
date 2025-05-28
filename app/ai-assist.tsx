@@ -1,4 +1,6 @@
-// AI Assistant - Customer support chatbot
+// AI Assistant chatbot for customer support
+// Customers can ask questions about water sports, bookings, pricing, etc.
+// Uses HuggingFace AI to provide helpful responses
 
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, SafeAreaView, TouchableOpacity, Platform, TextInput, ActivityIndicator, KeyboardAvoidingView, StatusBar, FlatList, Alert } from 'react-native';
@@ -18,14 +20,25 @@ import {
   suggestedTopics
 } from '@/services/huggingfaceService';
 
-// Glass effect component
-  interface GlassBackgroundProps {
-    style?: any;
-    intensity?: number;
-    children: React.ReactNode;
-    noRadius?: boolean;
+// Glass effect component for modern UI styling
+interface GlassBackgroundProps {
+  style?: any;
+  intensity?: number;
+  children: React.ReactNode;
+  noRadius?: boolean;
 }
 
+/**
+ * GlassBackground Component
+ * 
+ * Creates a modern glass morphism effect using iOS blur on supported platforms
+ * and falls back to semi-transparent backgrounds on other platforms.
+ * 
+ * @param style - Custom styling to apply
+ * @param intensity - Blur intensity (0-100)
+ * @param children - Child components to render inside
+ * @param noRadius - Whether to disable border radius
+ */
 function GlassBackground({ style, intensity = 50, children, noRadius = false }: GlassBackgroundProps) {
   const isIOS = Platform.OS === 'ios';
   
