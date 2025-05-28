@@ -19,11 +19,11 @@ import {
 } from '@/services/huggingfaceService';
 
 // Glass effect component
-interface GlassBackgroundProps {
-  style?: any;
-  intensity?: number;
-  children: React.ReactNode;
-  noRadius?: boolean;
+  interface GlassBackgroundProps {
+    style?: any;
+    intensity?: number;
+    children: React.ReactNode;
+    noRadius?: boolean;
 }
 
 function GlassBackground({ style, intensity = 50, children, noRadius = false }: GlassBackgroundProps) {
@@ -63,9 +63,9 @@ export default function AIAssistScreen() {
   // Chat state management
   const { user } = useAuth();
   const [userPrompt, setUserPrompt] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
-  const [initializing, setInitializing] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);                      // This file defines the AI Assistant screen, which includes chat functionality with an AI service. 
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);     // It manages user input, chat history, API key validation, and error handling. 
+  const [initializing, setInitializing] = useState(true);           // The screen also provides suggested topics, allows users to clear chat history, and includes navigation to a booking page.
   const [networkError, setNetworkError] = useState(false);
   const [apiKeyValid, setApiKeyValid] = useState(true);
   const flatListRef = useRef<FlatList>(null);

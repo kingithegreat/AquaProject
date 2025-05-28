@@ -41,7 +41,7 @@ export const suggestedTopics = [
 // Types
 export interface ChatMessage {
   type: 'user' | 'ai';
-  message: string;
+  message: string;                                           
   timestamp?: number;
 }
 

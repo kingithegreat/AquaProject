@@ -294,7 +294,7 @@ export default function HomeScreen() {    const { user, logout, loading } = useA
             
             {/* 
               GLASS MORPHISM TEXT OVERLAY
-              ==========================
+           
               This creates a semi-transparent overlay with text on top of the video.
               The GlassBackground component uses different techniques on iOS vs Android:
               - iOS: Real blur effect using native BlurView
@@ -306,7 +306,7 @@ export default function HomeScreen() {    const { user, logout, loading } = useA
             
             {/* 
               PLAY/PAUSE CONTROL BUTTON
-              ========================
+            
               This floating button appears in the bottom-right corner of the video.
               It shows different icons based on the video state:
               - Play icon (▶) when video is paused or not loaded
@@ -332,7 +332,7 @@ export default function HomeScreen() {    const { user, logout, loading } = useA
 
           {/* 
             MAIN NAVIGATION BUTTONS
-            =======================
+          
             These four buttons provide quick access to the main app features.
             Each button follows the same pattern:
             1. TouchableOpacity for tap handling
