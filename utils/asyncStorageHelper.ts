@@ -1,23 +1,9 @@
-// Storage helper - saves data on the user's device (like remembering login info)
-// Works on both phones and web browsers by using the right storage method for each
-
 // Helper functions to safely use AsyncStorage with web platform support
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-/**
- * Web Platform Storage Implementation
- * 
- * Provides a Promise-based wrapper around browser localStorage
- * to maintain API consistency with React Native AsyncStorage.
- * This ensures the same code works across mobile and web platforms.
- */
+// Web platform storage fallback using localStorage
 const webStorage = {
-  /**
-   * Retrieves a value from localStorage
-   * @param key - The storage key to retrieve
-   * @returns Promise resolving to the stored value or null
-   */
   getItem: (key: string): Promise<string | null> => {
     return new Promise((resolve) => {
       const value = localStorage.getItem(key);
@@ -25,12 +11,6 @@ const webStorage = {
     });
   },
   
-  /**
-   * Stores a value in localStorage
-   * @param key - The storage key
-   * @param value - The value to store
-   * @returns Promise that resolves when storage is complete
-   */
   setItem: (key: string, value: string): Promise<void> => {
     return new Promise((resolve) => {
       localStorage.setItem(key, value);
@@ -38,11 +18,6 @@ const webStorage = {
     });
   },
   
-  /**
-   * Removes a value from localStorage
-   * @param key - The storage key to remove
-   * @returns Promise that resolves when removal is complete
-   */
   removeItem: (key: string): Promise<void> => {
     return new Promise((resolve) => {
       localStorage.removeItem(key);
@@ -50,11 +25,6 @@ const webStorage = {
     });
   },
   
-  /**
-   * Retrieves multiple values from localStorage
-   * @param keys - Array of storage keys to retrieve
-   * @returns Promise resolving to array of [key, value] pairs
-   */
   multiGet: async (keys: string[]): Promise<[string, string | null][]> => {
     return Promise.all(
       keys.map(async (key) => {

@@ -26,6 +26,7 @@ import { db } from '@/config/firebase';
 
 /**
  * Preloads images for better performance.
+ * Ensures critical assets are ready before rendering the UI.
  */
 const preloadImages = async () => {
   try {
@@ -43,6 +44,7 @@ const preloadImages = async () => {
 
 /**
  * Glass morphism component for modern UI effects.
+ * Provides platform-specific implementations for iOS and Android.
  */
 interface GlassBackgroundProps {
   style?: any; // Custom styles for the glass effect container
@@ -84,6 +86,7 @@ function GlassBackground({ style, intensity = 50, children, noRadius = false }: 
 
 /**
  * TypeScript interface for customer reviews.
+ * Defines the structure for review data fetched from Firebase.
  */
 interface Review {
   id?: string; // Firebase document ID (optional for new reviews)
@@ -95,6 +98,7 @@ interface Review {
 
 /**
  * Main homepage component.
+ * Combines multiple systems like authentication, navigation, and reviews.
  */
 export default function HomeScreen() {
   // AUTHENTICATION STATE: Manages user login status and loading states
@@ -102,7 +106,6 @@ export default function HomeScreen() {
   
   /**
    * COMPONENT STATE MANAGEMENT
-   * ==========================
    * Manages multiple asynchronous operations and UI states:
    */
   // Image preloading state for performance optimization
@@ -203,11 +206,6 @@ export default function HomeScreen() {
     }
   };
     
-  /**
-   * COMPONENT LIFECYCLE MANAGEMENT
-   * ==============================
-   * Coordinates multiple asynchronous operations during component lifecycle:
-   */
   
   // Initialize image preloading on component mount
   useEffect(() => {
@@ -231,7 +229,7 @@ export default function HomeScreen() {
 
   /**
    * NAVIGATION HANDLERS
-   * ==================
+   
    * Centralized navigation functions for all app sections.
    * Each function uses Expo Router for type-safe navigation.
    */
@@ -261,7 +259,7 @@ export default function HomeScreen() {
 
   /**
    * LOADING STATE MANAGEMENT
-   * ========================
+   *
    * Shows loading screen while critical resources are being prepared.
    * Prevents showing incomplete UI to users.
    */
@@ -276,7 +274,7 @@ export default function HomeScreen() {
   
   /**
    * MAIN RENDER FUNCTION
-   * ====================
+   *
    * Renders the complete homepage with multiple sections:
    * 1. Dynamic authentication header
    * 2. Interactive video hero section  
@@ -291,7 +289,7 @@ export default function HomeScreen() {
       
       {/* 
         DYNAMIC AUTHENTICATION HEADER
-        =============================
+        
         Displays different UI based on user authentication state:
         - Loading: Shows loading indicator
         - Logged in: Shows user email and account access

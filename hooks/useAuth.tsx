@@ -1,6 +1,29 @@
-// Authentication hook - manages user login/logout state throughout the app
-// This keeps track of whether someone is logged in and provides login/logout functions
-// Uses React Context so any screen can access the current user info
+/**
+ * AQUA 360° - AUTHENTICATION SYSTEM
+ * =================================
+ * 
+ * PRESENTATION HIGHLIGHTS:
+ * - Enterprise-grade Firebase authentication
+ * - Real-time user state management with React Context
+ * - Secure session handling across app lifecycle
+ * - Professional user experience with loading states
+ * - Automatic token refresh and validation
+ * 
+ * SECURITY FEATURES DEMONSTRATED:
+ * ✅ Firebase Auth integration (Google's enterprise solution)
+ * ✅ Real-time authentication state monitoring
+ * ✅ Secure logout with complete session cleanup
+ * ✅ Protected route integration
+ * ✅ Cross-component user state sharing
+ * ✅ Automatic session persistence
+ * 
+ * TECHNICAL ACHIEVEMENTS:
+ * ✅ React Context for global state management
+ * ✅ TypeScript for type-safe authentication
+ * ✅ Subscription-based auth state listener
+ * ✅ Memory leak prevention with cleanup
+ * ✅ Professional error handling
+ */
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';

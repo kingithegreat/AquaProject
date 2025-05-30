@@ -1,6 +1,3 @@
-// My Bookings screen - shows all of a user's current and past bookings
-// Users can view booking details, check status, and manage their reservations
-
 import React, { useEffect, useState } from 'react';
 import { 
   StyleSheet, 

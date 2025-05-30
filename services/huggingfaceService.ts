@@ -1,14 +1,10 @@
-// AI chatbot service using HuggingFace API
-// This handles sending user messages to AI and getting responses back
-// Also saves chat history so users can see previous conversations
-
+// filepath: services/huggingfaceService.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { collection, doc, getDoc, getDocs, query, setDoc, where, deleteDoc, getFirestore } from 'firebase/firestore';
 import { initializeApp } from 'firebase/app';
 import NetInfo from '@react-native-community/netinfo';
 
-// Firebase configuration for chat history persistence
-// Identical to main firebase.ts to ensure consistency
+// Initialize Firebase (copied from firebase.ts)
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || "AIzaSyDhrik544tBzrcVBgeQU3GMuNaDDB6Bxmw",
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || "year2project-fa35b.firebaseapp.com",
@@ -19,34 +15,30 @@ const firebaseConfig = {
   measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-SPM59SGPKE"
 };
 
-// Initialize Firebase for this service
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const firestore = getFirestore(app);
 
-// Storage key for local chat history backup
+// Constants
 const CHAT_HISTORY_STORAGE_KEY = 'aqua360_chat_history';
 
-// HuggingFace AI Configuration
-// Using HuggingFace's Inference Providers API for enterprise-grade reliability
-// Documentation: https://huggingface.co/docs/inference-providers/index
+// Using Hugging Face's Inference Providers API (this is different from the regular Inference API)
+// For details see: https://huggingface.co/docs/inference-providers/index
 const HF_API_URL = 'https://router.huggingface.co/novita/v3/openai/chat/completions';
-// DeepSeek-V3: Advanced conversational AI model optimized for customer service
+// Using a model compatible with Novita AI provider
 const HF_MODEL = 'deepseek/deepseek-v3-0324';
 
-/**
- * Predefined conversation starters for improved user experience
- * These topics cover the most common customer inquiries about water sports services
- */
+// Suggested topics for the AI Assistant (reusing existing topics)
 export const suggestedTopics = [
-  "What jet ski models do you offer?",      // Equipment information
-  "What's the minimum age to rent?",        // Age requirements and safety
-  "How much does a jet ski rental cost?",   // Pricing information
-  "Do I need a license to ride?",          // Legal requirements
-  "What safety equipment is provided?",     // Safety and equipment details
-  "Do you offer group discounts?"          // Pricing and group bookings
+  "What jet ski models do you offer?",
+  "What's the minimum age to rent?",
+  "How much does a jet ski rental cost?",
+  "Do I need a license to ride?",
+  "What safety equipment is provided?",
+  "Do you offer group discounts?"
 ];
 
-// TypeScript interfaces for type safety and documentation
+// Types
 export interface ChatMessage {
   type: 'user' | 'ai';
   message: string;                                           

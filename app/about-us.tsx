@@ -1,4 +1,5 @@
 // About Us screen for Aqua 360°
+// Provides information about the company, services, and customer reviews.
 import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, 
@@ -44,7 +45,10 @@ export default function AboutUsScreen() {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
-  // Fetch reviews from Firestore
+  /**
+   * Fetches customer reviews from Firestore.
+   * Includes fallback data for reliability in case of errors.
+   */
   useEffect(() => {
     const fetchReviews = async () => {
       try {
@@ -107,7 +111,10 @@ export default function AboutUsScreen() {
     fetchReviews();
   }, []);
   
-  // List of services offered
+  /**
+   * List of services offered by Aqua360.
+   * Includes details like name, description, price, and duration.
+   */
   const services: Service[] = [
     { 
       id: 1,
@@ -167,9 +174,17 @@ export default function AboutUsScreen() {
     },
   ];
 
+  /**
+   * Handles service card press.
+   * Opens a modal with detailed information about the selected service.
+   */
   const handleServicePress = (service: Service) => {
     setSelectedService(service);
   };
+  /**
+   * Main render function for the About Us screen.
+  
+   */
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#52D6E2' }}>
       <StatusBar 

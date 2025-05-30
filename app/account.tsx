@@ -1,6 +1,3 @@
-// User account screen - shows user profile, bookings, and account management
-// Users can view their booking history, check waiver status, and logout here
-
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, View, Image, Dimensions, Alert } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
@@ -16,7 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import withProtectedRoute from '@/hooks/withProtectedRoute';
 import { Colors } from '@/constants/Colors';
 
-// Define Booking type for proper state typing
+// Define Booking type for proper state management and data consistency
 interface Booking {
   id: string;
   reference?: string;
