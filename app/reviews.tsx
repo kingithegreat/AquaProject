@@ -278,6 +278,7 @@ export default function ReviewsScreen() {  // Review state
     setIsLoading(true);
     
     try {
+      console.log('Submitting new review...');
       // STEP 4: Create review data object with all required fields
       const reviewData: Omit<Review, 'id'> = {
         author,

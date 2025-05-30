@@ -212,14 +212,13 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-  },  title: {
+  },
+  title: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#21655A',
     marginTop: 15,
     lineHeight: 40,
-    letterSpacing: 1,
-    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,

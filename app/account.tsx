@@ -538,11 +538,12 @@ const styles = StyleSheet.create({  container: {
   },  profileImageContainer: {
     marginBottom: 16,
     marginTop: 30, // Increased top margin to further shift the image down
-  },profileImage: {
+  },
+  profileImage: {
     width: 150,
     height: 150,
     borderRadius: 10, // Slightly rounded corners for the logo
-  },// Profile placeholder styles removed as we're using logo image now
+  },
   userEmail: {
     fontSize: 18,
     fontWeight: '600',

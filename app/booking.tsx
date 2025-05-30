@@ -385,7 +385,16 @@ function BookingScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* Configure screen header */}
-      <Stack.Screen options={{ title: 'Book Your Adventure' }} />
+      <Stack.Screen options={{ 
+        title: 'Book Your Adventure',
+        headerStyle: {
+          backgroundColor: '#FFFFFF', //white
+        },
+        headerTintColor: '#000000', 
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+      }} />
       
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Date Selection Section */}

@@ -334,14 +334,16 @@ const styles = StyleSheet.create({
     borderRadius: 60,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32, // Increased from 28
     fontWeight: 'bold',
     color: '#21655A',
     marginTop: 15,
-    lineHeight: 34, // Add lineHeight to fix text squashing
-    paddingVertical: 4, // Add vertical padding to ensure text has room
+    lineHeight: 40, // Proper line height
+    paddingVertical: 4, // Ensure text has room
     includeFontPadding: true, // Ensure font padding is included
-    textAlignVertical: 'center', // Vertical alignment
+    textAlign: 'center', // Center text horizontally
+    textAlignVertical: 'center', // Center text vertically
+    letterSpacing: 1, // Added letter spacing
   },
   subtitle: {
     fontSize: 16,

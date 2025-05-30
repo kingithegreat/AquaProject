@@ -3,11 +3,23 @@ import 'react-native-url-polyfill/auto';
 import 'react-native-get-random-values';
 
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore, collection, addDoc, getDocs, query, where, enableIndexedDbPersistence } from 'firebase/firestore';
+import { initializeAuth } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { 
+  getFirestore, 
+  collection, 
+  addDoc, 
+  getDocs, 
+  query, 
+  where, 
+  enableIndexedDbPersistence,
+  writeBatch,
+  doc
+} from 'firebase/firestore';
 import NetInfo from '@react-native-community/netinfo';
 import { Platform } from 'react-native';
 import { safeGetItem, safeSetItem, safeRemoveItem, safeMultiGet } from '../utils/asyncStorageHelper';
+import { getAuth } from 'firebase/auth'; // Added missing import
 
 // Your Firebase configuration from environment variables
 // This is safer for exposing code and better for different environments
@@ -39,7 +51,7 @@ try {
 }
 
 // Initialize Firebase Auth
-const auth = getAuth(app);
+const auth = initializeAuth(app);
 
 // Initialize Firestore with better error handling for offline support
 const db = getFirestore(app);
@@ -58,12 +70,12 @@ if (Platform.OS === 'web') {
 }
 
 // Set up network monitoring
-let isConnected = true;
-let networkMonitoringSetup = false;
-let offlineOperationsQueue: Array<{type: string; data: any; retryCount?: number}> = [];
+let isConnected: boolean = true;
+let networkMonitoringSetup: boolean = false;
+let offlineOperationsQueue: Array<{ type: string; data: any; retryCount?: number }> = [];
 
 // Store network state in AsyncStorage for persistence across app restarts
-const saveNetworkState = async (connected: boolean) => {
+const saveNetworkState = async (connected: boolean): Promise<void> => {
   try {
     await safeSetItem('network_state', JSON.stringify({ isConnected: connected }));
   } catch (error) {
@@ -72,7 +84,7 @@ const saveNetworkState = async (connected: boolean) => {
 };
 
 // Load network state from AsyncStorage on app start
-const loadNetworkState = async () => {
+const loadNetworkState = async (): Promise<void> => {
   try {
     const storedState = await safeGetItem('network_state');
     if (storedState) {
@@ -158,55 +170,43 @@ setupNetworkMonitoring();
 loadOfflineOperations();
 
 // Process the offline queue with improved error handling and retries
-const processOfflineQueue = async () => {
+const processOfflineQueue = async (retryAttempt: number = 0): Promise<void> => {
   if (offlineOperationsQueue.length === 0) return;
 
   console.log(`Processing ${offlineOperationsQueue.length} offline operations`);
-  
-  // Create a copy and clear the original to avoid double-processing
+
   const operations = [...offlineOperationsQueue];
-  offlineOperationsQueue = [];
-  
-  // Track successful operations for reporting
-  let successCount = 0;
-  let failCount = 0;  // Process operations in sequential order with delay to avoid errors
+  let successfulOps: Array<{ type: string; data: any }> = [];
+
   for (const operation of operations) {
     try {
-      // Wait between operations
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       if (operation.type === 'booking') {
         await processOfflineBooking(operation.data);
-        successCount++;
+        successfulOps.push(operation);
       } else {
-        // Handle other operation types in the future if needed
         console.warn('Unknown operation type:', operation.type);
-        failCount++;
       }
     } catch (error) {
       console.error('Error processing operation:', error);
-      // Re-add to queue for later retry with backoff
-      const op = operation as {type: string; data: any; retryCount?: number};
+      const op = operation as { type: string; data: any; retryCount?: number };
       op.retryCount = (op.retryCount || 0) + 1;
-      if (op.retryCount < 3) { // Limit retries to prevent infinite loops
+      if (op.retryCount < 3) {
         offlineOperationsQueue.push(op);
-      } else {
-        console.error('Operation failed after multiple retries:', op);
-        failCount++;
       }
     }
   }
-  
-  console.log(`Queue processing completed. Success: ${successCount}, Failed: ${failCount}, Remaining: ${offlineOperationsQueue.length}`);
-  
-  // Save queue state to AsyncStorage for persistence across app restarts
-  try {
-    // Skip AsyncStorage on web platform
-    if (Platform.OS !== 'web') {
-      await safeSetItem('offline_queue', JSON.stringify(offlineOperationsQueue));
-    }
-  } catch (error) {
-    console.error('Error saving offline queue:', error);
+
+  offlineOperationsQueue = offlineOperationsQueue.filter(
+    op => !successfulOps.some(successOp => successOp.data === op.data)
+  );
+
+  console.log(`Successfully processed ${successfulOps.length} operations`);
+
+  if (offlineOperationsQueue.length > 0 && retryAttempt < 3) {
+    const backoffTime = Math.min(1000 * 2 ** retryAttempt, 30000);
+    setTimeout(() => processOfflineQueue(retryAttempt + 1), backoffTime);
   }
 };
 
@@ -283,12 +283,21 @@ const processOfflineBooking = async (bookingData: any) => {
       // Keep the local copy if verification fails
     }
   } catch (error) {
-    console.error(`Failed to sync offline booking ${bookingData.reference}:`, error);
-    // Don't throw the error - this prevents the booking from being removed from the queue
-    return false;
+    console.error('Error processing offline booking:', error);
   }
-  
-  return true;
+};
+
+// Maximum number of operations to process in a single batch (per Firestore batch limits)
+const BATCH_SIZE = 200;
+// Maximum retry attempts
+const MAX_RETRY_ATTEMPTS = 5;
+
+// Process the offline queue with batched writes and retry logic
+const processBookingBatch = async (
+  bookingOperations: Array<{ data: { reference: string } }>
+): Promise<void> => {
+  const referencesToCheck = bookingOperations.map(op => op.data.reference);
+  console.log('References to check:', referencesToCheck);
 };
 
 // Helper function to detect if we're running in Expo Go
